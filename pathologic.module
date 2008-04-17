@@ -27,12 +27,18 @@
 
 function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 	if ($op === "process" && $text !== "") {
-		preg_match_all('|href="([^/][^#:]+)#?([^:]*)"|', $text, $matches);
 		// We can't just do a preg_replace() here because we need to run the url()
 		// function on all the matches.
-		if (count($matches) === 0) {
+		if (preg_match_all('|href="([^/][^#:"]+)#?([^:"]*)"|', $text, $matches) == 0) {
+			// Either no matches were found (0 was returned) or there was an error of
+			// some sort (FALSE was returned, which evaluates to 0).
 			return $text;
 		}
+		// Now, $matches[0][$x] matches the $x-th entire pattern;
+		// $matches[1][$x] matches the $x-th path without the anchor part;
+		// $matches[2][$x] matches the $x-th anchor part (if any), or an empty
+		// string.
+
 		$rep_from = array();
 		$rep_to = array();
 		$mcount = count($matches[0]);
@@ -43,11 +49,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 			// That stops a # from appearing at the end of the URL that url() returns
 			// if there wasn't an anchor fragment in the original path.
 			$rep_from[] = $matches[0][$x];
-			$rep_to[] = 'href="' . url($matches[1][$x], array(
-				'external' => FALSE,
-				'fragment' => $matches[2][$x], // it's okay if this is an empty string
-				'absolute' => variable_get("filter_pathologic_abs_{$format}", TRUE),
-				)) . '"';
+			$rep_to[] = 'href="' . url($matches[1][$x], NULL, $matches[2][$x], variable_get("filter_pathologic_abs_{$format}", TRUE)) . '"';
 			// NOTE NOTE NOTE: D5 url() expects a series of parameters;
 			// D6 url() expects an associative array.
 		}
@@ -81,10 +83,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 
 function pathologic_filter_tips($delta = 0, $format = -1, $long = TRUE) {
 	if ($long) {
-		return t("<p>Pathologic will automatically find links using non-absolute URIs in text and format them properly for the Drupal installation it is running on. That way, you can just enter links like <tt>&lt;a href=&quot;page/foo&quot;&gt;</tt> and Pathologic will auotmatically convert it to <tt>&lt;a href=&quot;!corrected&gt;</tt>. Should circumstances of this Drupal's installation or its data change &mdash; the data is moved to another server, or Clean URLs are toggled &mdash; the URIs will adjust themselves so that they will always be correct.</p><p>Note that Pathologic will ignore paths with a slash as the first character, and all absolute URIs.</p>", array('!corrected' => url("page/foo", array(
-		'external' => FALSE,
-		'absolute' => variable_get("filter_pathologic_abs_{$format}", TRUE),
-		))));
+		return t("<p>Pathologic will automatically find links using non-absolute URIs in text and format them properly for the Drupal installation it is running on. That way, you can just enter links like <tt>&lt;a href=&quot;page/foo&quot;&gt;</tt> and Pathologic will auotmatically convert it to <tt>&lt;a href=&quot;!corrected&gt;</tt>. Should circumstances of this Drupal's installation or its data change &mdash; the data is moved to another server, or Clean URLs are toggled &mdash; the URIs will adjust themselves so that they will always be correct.</p><p>Note that Pathologic will ignore paths with a slash as the first character, and all absolute URIs.</p>", array('!corrected' => url("page/foo", NULL, NULL, variable_get("filter_pathologic_abs_{$format}", TRUE))));
 	}
 	return t("Relative links to other pages in this Drupal installation will be properly formatted by Pathologic.");
 }
