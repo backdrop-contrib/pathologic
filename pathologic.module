@@ -33,12 +33,15 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 			// which was to build arrays of matches and replacements and run them
 			// through str_replace. (At least, it's more efficient if you interpret
 			// fewer loc to mean higher efficiency.)
-			$text = preg_replace('|href="([^/][^#:"]+)#?([^:"]*)"|e',
-				"'href=\"' . url(\"$1\", array(
-					'external' => FALSE,
-					'fragment' => \"$2\",
-					'absolute' => TRUE,
-					)) . '\"'",
+			// HOWEVER, since D5's url() function interprets a blank string as meaning
+			// that the anchor fragment should just simply be "#", we need to do this
+			// twice; once for URIs with anchor fragments, and once for those without
+			// them, so that those without them won't suddenly gain them.
+			$text = preg_replace('|href="([^/][^#:"]+)#([^:"]*)"|e',
+				"'href=\"' . url(\"$1\", NULL, \"$2\", TRUE) . '\"'",
+				$text);
+			$text = preg_replace('|href="([^/][^#:"]+)"|e',
+				"'href=\"' . url(\"$1\", NULL, NULL, TRUE) . '\"'",
 				$text);
 			// Wow, what a trip.
 		}
@@ -86,10 +89,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 
 function pathologic_filter_tips($delta = 0, $format = -1, $long = TRUE) {
 	if ($long) {
-		return t("<p>Pathologic will automatically find links using non-absolute URIs in text and format them properly for the Drupal installation it is running on. That way, you can just enter links like <tt>&lt;a href=&quot;page/foo&quot;&gt;</tt> and Pathologic will auotmatically convert it to <tt>&lt;a href=&quot;!corrected&gt;</tt>. Should circumstances of this Drupal's installation or its data change &mdash; the data is moved to another server, or Clean URLs are toggled &mdash; the URIs will adjust themselves so that they will always be correct.</p><p>Note that Pathologic will ignore paths with a slash as the first character, and all absolute URIs.</p>", array('!corrected' => url("page/foo", array(
-		'external' => FALSE,
-		'absolute' => variable_get("filter_pathologic_abs_{$format}", TRUE),
-		))));
+		return t("<p>Pathologic will automatically find links using non-absolute URIs in text and format them properly for the Drupal installation it is running on. That way, you can just enter links like <tt>&lt;a href=&quot;page/foo&quot;&gt;</tt> and Pathologic will auotmatically convert it to <tt>&lt;a href=&quot;!corrected&gt;</tt>. Should circumstances of this Drupal's installation or its data change &mdash; the data is moved to another server, or Clean URLs are toggled &mdash; the URIs will adjust themselves so that they will always be correct.</p><p>Note that Pathologic will ignore paths with a slash as the first character, and all absolute URIs.</p>", array('!corrected' => url("page/foo", NULL, NULL, variable_get("filter_pathologic_abs_{$format}", TRUE))));
 	}
 	return t("Relative links to other pages in this Drupal installation will be properly formatted by Pathologic.");
 }
