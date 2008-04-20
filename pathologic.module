@@ -34,7 +34,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 			// through str_replace. (At least, it's more efficient if you interpret
 			// fewer loc to mean higher efficiency.)
 			$text = preg_replace('|href="([^/][^#:"]+)#?([^:"]*)"|e',
-				"'href=\"' . url($1, array(
+				"'href=\"' . url(\"$1\", array(
 					'external' => FALSE,
 					'fragment' => \"$2\",
 					'absolute' => TRUE,
