@@ -1,9 +1,24 @@
 Pathologic
 ----------
 
-By Garrett Albright
+Project Page:
+http://drupal.org/project/pathologic
 
-Pathologic is a text filter for Drupal which allows one to link to other pages on the Drupal installation in such a way that the links will always point to the correct page, even after changes are made to the Drupal installation or its data which would change the URIs of its pages; for example, if Clean URLs are toggled, if the data is moved to a different server (perhaps from a testing server to a production one), if the subdirectory of the Drupal installation changes, etc. Pathologic does not require any new tags or special characters, and is designed to work seamlessly with any other text filters you are using.
+By Garrett Albright
+http://drupal.org/user/191212
+Email: albright (at) anre [dot] net
+AIM: AlbrightGuy - ICQ: 150670553 - IRC: Albright
+
+Pathologic is a text filter for Drupal which aims to ensure that images and links to other pages on the Drupal installation will never "break," even after changes are made to the Drupal installation or its data which would change the URIs of its pages; for example, if Clean URLs are toggled, if the data is moved to a different server (perhaps from a testing server to a production one), if the subdirectory of the Drupal installation changes, etc. Pathologic does not require you to learn any new tags or special characters, and is designed to work seamlessly with any other text filters you are using.
+
+Thanks for trying Pathologic!
+
+
+In more technical terms…
+------------------------
+
+Upon display of your content, Pathologic extracts href values with relative paths from your content and runs them through Drupal's url() function. It also extracts src attributes with relative values and prepends Drupal's $base_url to them. To this end, those values will be made correct given the circumstances of the Drupal installation.
+
 
 Installation and configuration
 ------------------------------
@@ -26,27 +41,38 @@ Install Pathologic as any other module, and configure it as any other text filte
 Using Pathologic
 ----------------
 
-Pathologic is designed to be as simple and unobtrusive to use as possible. To that end, no special "tags" or other characters are needed to tell Pathologic where to act.
+Pathologic is designed to be as simple and unobtrusive to use as possible. To that end, no special "tags" or special characters are needed to tell Pathologic where to act.
 
-Instead, it looks through the text for any href element with a value that a) does not have a colon (:) in it (and is therefore probably not an absolute path) and b) does not have a slash (/) as the first character. If the value passes those two tests, then Pathologic will replace it with a path which is correct for the current Drupal installation *before it is displayed,* not before it is stored in the database. This means that the path will always be correct relative to the settings of whatever Drupal installation Pathologic is running on. Pathologic will handle anchor pointers correctly.
+Instead, it looks through the text for any href attribute (most commonly used in links) or src attribute (most commonly used in image tags) with a value that both does not have a colon (:) in it and does not have a slash (/) as the first character. If the value passes those two tests, Pathologic will transform it into a path which is correct for the current Drupal installation *before it is displayed,* not before it is stored in the database. This means that the path will always be correct relative to the settings of whatever Drupal installation Pathologic is running on. Pathologic will handle anchor fragments correctly (the optional part of a URI after a "#" which points to an anchor tag on the page).
 
-A chart might be helpful here. Assuming that the Drupal installation is running in the "test" subdirectory on http://example.com and Clean URLs are not enabled, if you enter text like this:
+Somee examples might be helpful here. Assuming that the Drupal installation is running in the "test" subdirectory on http://example.com and Clean URLs are not enabled, if you enter text like this:
 
-	Hello! This is a <a href="foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="difficulty#easy">easier</a>.
+	Hello! This is a <a href="foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="difficulty#easy">easier</a>. <img src="images/smiley.png" alt=":)" />
 
 The output after running it through Pathologic should look like this:
 
-	Hello! This is a <a href="http://example.com/test/?q=foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="http://example.com/test/?q=difficulty#easy">easier</a>.
+	Hello! This is a <a href="http://example.com/test/?q=foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="http://example.com/test/?q=difficulty#easy">easier</a>. <img src="http://example.com/test/images/smiley.png" alt=":)" />
 
 As you can see, Pathologic did its thing on the "foo/bar" and "difficulty#easy" values, but ignored the other two. But what if you then moved the Drupal installation into the "live" subdirectory and enabled Clean URLs? Then, without you having to update your text at all, Pathologic will output the following:
 
-	Hello! This is a <a href="http://example.com/live/foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="http://example.com/live/difficulty#easy">easier</a>.
+	Hello! This is a <a href="http://example.com/live/foo/bar">test</a> of <a href="http://drupal.org/project/pathologic">Pathologic</a>, a Drupal <a href="/text-filter">text filter</a> designed to make life <a href="http://example.com/live/difficulty#easy">easier</a>. <img src="http://example.com/live/images/smiley.png" alt=":)" />
 
 Hopefully now you're getting a good idea of how Pathologic works and how it can make your life easier, especially if you're frequently moving data from one server to another (say, from a testing server to a live server).
+
+
+Disabling transformation
+------------------------
+
+By default, Pathologic transforms values of both href attributes and src attributes. If you want to disable one or the other -- say, you don't mind Pathologic correcting the href attributes of your links, but you want it to leave the src attributes of your images alone -- here's how you can do so.
+
+1. In the Administer menu, select "Input formats" from the "Site configuration" section. A list will appear of the various input formats your site uses. Click the "configure" link next to the relevant one.
+
+2. Click the "Configure" tab at the top.
+
+3. At the bottom of the page will be the options for Pathologic. Use the checkboxes to enable or disable transformations on href and src attributes, then click the "Save configuration" button.
+
 
 License
 -------
 
-This module follows Drupal.org guidelines and is released under the GNU General Public License version 2. However, this is done under protest, as I find the concept of "copyleft" licenses and the complications and restrictions they introduce to be quite antithetical to the concept of open source software. The text of this unfortunate license can be found here:
-
-http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+This module follows Drupal.org guidelines and is released under the GNU General Public License version 2. However, this is done under protest, as I find the concept of "copyleft" licenses and the complications and restrictions they introduce to be quite antithetical to the concept of open source software. The text of this unfortunate license can be found in the LICENSE.TXT file included with this archive.
