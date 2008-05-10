@@ -5,78 +5,63 @@
  * Pathologic text filter for Drupal
  * by Garrett Albright
  * 
- * Pleasant sounds you won't find in a record store:
+ * Buy these CDs now:
  * Back to Winnipeg by Fatblueman
  *   http://www.fatblueman.net/
  * A Terrible Flood by esselfortium
  *   http://sl4.poned.com/
  */
 
-// Possible new feature: Check for absolute URIs within the current Drupal
-// installation (because that's what people will get when they copy URLs from
-// links) and convert them to relative URIs so that the filter handles them
-// properly when things move to another domain. (Use hook_nodeapi()?) This may
-// be a bad idea (it's considerably more Drupal-ic to mangle data on output, not
-// on input), but it will make things a little more idiot-proof.
-
 /**
  * Implementation of hook_filter().
  */
 
-function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
-	if ($op === "process" && $text !== "") {
+function pathologic_filter($op, $delta = 0, $format = -1, $text = "") {
+	if ($op === 'process' && $text !== '') {
 		if (variable_get("filter_pathologic_href_{$format}", TRUE)) {
-			// Transform href attributes.
-			// The e modifier in preg_replace's RegEx lets us "replace" a match with
-			// the result of some eval'd code. I didn't know about this when I first
-			// built Pathologic… This is more efficient than the way I was doing it,
-			// which was to build arrays of matches and replacements and run them
-			// through str_replace. (At least, it's more efficient if you interpret
-			// fewer loc to mean higher efficiency.)
-			// HOWEVER, since D5's url() function interprets a blank string as meaning
-			// that the anchor fragment should just simply be "#", we need to do this
-			// twice; once for URIs with anchor fragments, and once for those without
-			// them, so that those without them won't suddenly gain them.
-			$text = preg_replace('|href="([^/][^#:"]+)#([^:"]*)"|e',
-				"'href=\"' . url(\"$1\", NULL, \"$2\", TRUE) . '\"'",
-				$text);
-			$text = preg_replace('|href="([^/][^#:"]+)"|e',
-				"'href=\"' . url(\"$1\", NULL, NULL, TRUE) . '\"'",
-				$text);
-			// Wow, what a trip.
+			// Do transformation on HREF paths
+			// Make relative
+			$text = preg_replace_callback(_pathologic_abs_regex('href', $format), '_pathologic_abs_to_rel', $text);
+			// Transform attributes
+			$text = preg_replace_callback('|href="([^/][^#:"]+)#?([^:"]*)"|', '_pathologic_do_href', $text);
 		}
 		if (variable_get("filter_pathologic_src_{$format}", TRUE)) {
-			global $base_url;
-			// The RegEx for this is simpler because we don't have to worry about
-			// anchor fragments. That is to say, they could be in the attribute, but
-			// they don't need to be separated out. We don't need to use the e
-			// modifier here -- just PHP's built-in string building.
-			$text = preg_replace('|src="([^/][^:"]+)"|', "src=\"{$base_url}/$1\"", $text);
+			// Do transformation on SRC paths
+			// Make relative
+			$text = preg_replace_callback(_pathologic_abs_regex('src', $format), '_pathologic_abs_to_rel', $text);
+			// Transform attributes
+			$text = preg_replace_callback('|src="([^/][^:"]+)"|', '_pathologic_do_src', $text);
 		}
 		return $text;
 	}
-	if ($op === "list") {
+	if ($op === 'list') {
 		return array(t('Pathologic'));
 	}
-	if ($op === "description") {
-		return t("Simplifies linking to other pages in a Drupal installation so that links will always point to the correct page.");
+	if ($op === 'description') {
+		return t('Corrects paths in content which reference pages or media on this server.');
 	}
-	if ($op === "settings") {
+	if ($op === 'settings') {
 		return array('filter_pathologic' => array(
 	    '#type' => 'fieldset',
 	    '#title' => t('Pathologic'),
 	    '#collapsible' => TRUE,
  			"filter_pathologic_href_{$format}" => array(
-				'#type' => "checkbox",
-				'#title' => t("Transform values of <em>href</em> attributes"),
+				'#type' => 'checkbox',
+				'#title' => t('Transform values of <em>href</em> attributes'),
 				'#default_value' => intval(variable_get("filter_pathologic_href_{$format}", 1)),
-				'#description' => t("<em>href</em> attributes are used in link tags."),
+				'#description' => t('<em>href</em> attributes are used in link tags.'),
 			),
  			"filter_pathologic_src_{$format}" => array(
-				'#type' => "checkbox",
-				'#title' => t("Transform values of <em>src</em> attributes"),
+				'#type' => 'checkbox',
+				'#title' => t('Transform values of <em>src</em> attributes'),
 				'#default_value' => intval(variable_get("filter_pathologic_src_{$format}", 1)),
-				'#description' => t("<em>src</em> attributes are used in image tags and tags for other types of embedded media."),
+				'#description' => t('<em>src</em> attributes are used in image tags and tags for other types of embedded media.'),
+			),
+			"filter_pathologic_abs_paths_{$format}" => array(
+				'#type' => 'textarea',
+				'#title' => t('Additional paths to be considered local'),
+				'#default_value' => variable_get("filter_pathologic_abs_paths_{$format}", ''),
+				'#description' => t('Enter URIs of other Drupal installations which should be considered local in addition to the one for this particular Drupal installation (which is %path). If in doubt, enter the path to the Drupal installation&rsquo;s front page. Enter one path per line.', array('%path' => _pathologic_url('<front>'))),
 			),
 		));
 	}
@@ -84,12 +69,108 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = ""){
 }
 
 /**
- * Implementation of hook_filter_tips().
+ * Return the hard part of the regular expression to be used when making paths
+ * relative. $attr will probably be either 'href' or 'src'.
  */
 
-function pathologic_filter_tips($delta = 0, $format = -1, $long = TRUE) {
-	if ($long) {
-		return t("<p>Pathologic will automatically find links using non-absolute URIs in text and format them properly for the Drupal installation it is running on. That way, you can just enter links like <tt>&lt;a href=&quot;page/foo&quot;&gt;</tt> and Pathologic will auotmatically convert it to <tt>&lt;a href=&quot;!corrected&gt;</tt>. Should circumstances of this Drupal's installation or its data change &mdash; the data is moved to another server, or Clean URLs are toggled &mdash; the URIs will adjust themselves so that they will always be correct.</p><p>Note that Pathologic will ignore paths with a slash as the first character, and all absolute URIs.</p>", array('!corrected' => url("page/foo", NULL, NULL, variable_get("filter_pathologic_abs_{$format}", TRUE))));
+function _pathologic_abs_regex($attr, $format) {
+	static $pathstr = FALSE;
+	if ($pathstr === FALSE) {
+		$paths_field = trim(variable_get("filter_pathologic_abs_paths_{$format}", ''));
+		if ($paths_field !== '') {
+			// Get rid of spirious white space on each line
+			$paths = array_map('trim', explode("\n", $paths_field));
+		}
+		else {
+			$paths = array();
+		}
+		$paths[] = _pathologic_url('<front>');
+		// It's possible the user entered the path for the current site in the box,
+		// especially if the DB contents are shared between two different servers
+		// (likely if it's a testing/production server thing). This won't screw up
+		// the regex, but it will unnecessarily complicate it, so let's remove
+		// duplicates from the array.
+		$paths = array_unique($paths);
+		$pathstr = ')="(' . implode('/?(index.php)?(\?q=)?|', $paths) . '/?(index.php)?(\?q=)?)([^"]*)"`';
+		// $pathstr now looks like:
+		// )="(http://abcde.fgh//?(index.php)?(\?q=)?|http://edcba.hgf//?(index.php)?(\?q=)?)([^"]*)";
 	}
-	return t("Relative links to other pages in this Drupal installation will be properly formatted by Pathologic.");
+	return '`('. $attr . $pathstr;
+	// Returned value looks like:
+	// (href)="(http://abcde.fgh//?(index.php)?(\?q=)?|http://edcba.hgf//?(index.php)?(\?q=)?)([^"]*)"
+	// We want to match the attribute so that the callback
+	// _pathologic_abs_to_rel() below can return a value with the attribute
+	// without special trickery or creating duplicate functions.
+}
+
+/**
+ * preg_replace_callback() callback function.
+ * Aids in turning an absolute path to a page on the local server to a relative
+ * path so that Pathologic can act on it further.
+ */
+
+function _pathologic_abs_to_rel($matches) {
+	// The attribute will be the first match (after 0), and the path will be the
+	// last.
+	$path = array_pop($matches);
+	if ($path === '') {
+		// It looks like this was meant to be a link to the front page.
+		return $matches[1] . '="<front>"';
+	}
+	return $matches[1] . '="' . $path . '"';
+}
+
+/**
+ * preg_replace_callback() callback function.
+ * Properly formats an HREF element. Here's where the magic happens…
+ */
+
+function _pathologic_do_href($matches) {
+	return 'href="' . _pathologic_url($matches[1], $matches[2]) . '"';
+}
+
+/**
+ * preg_replace_callback() callback function.
+ * Okay. If we have a local SRC attribute, there are two possibilities.
+ * 
+ * One, the more likely one, is that we're referencing a file that physically
+ * exists on the disk. In which case the SRC path should be passed along as is.
+ *
+ * Two, the less likely but still possible one, is that we're referencing a
+ * Drupal path, in which case we should treat it like an HREF path and run it
+ * through url().
+ *
+ * So let's check to see if the file actually exists. If it does, assume the
+ * former; if not, assume the latter and run it through url().
+ */
+
+function _pathologic_do_src($matches) {
+	if (file_exists($matches[1])) {
+		global $base_url;
+		return "src=\"{$base_url}/{$matches[1]}\"";
+	}
+	return 'src="' . _pathologic_url($matches[1]) . '"';
+}
+
+/**
+ * This is an unabashed hack.
+ *
+ * The only difference between Drupal 5 and Drupal 6, as far as this module is
+ * concerned, is that they call the url() function in different ways. Rather
+ * than have two versions of the code with ever-so-minute differences strewn
+ * about, I can just wrap the calls to url() in a function like this which
+ * checks Drupal's version, then calls the function differently depending on
+ * whether Drupal is running version 5 (or earlier) or version 6 (or later).
+ */
+
+function _pathologic_url($path, $fragment = NULL) {
+	static $five = NULL;
+	if ($five === NULL) {
+		$five = intval(VERSION) < 6;
+	}
+	if ($five) {
+		// I typically shun the ternary operator, but it fits here.
+		return url($path, NULL, $fragment === '' ? NULL : $fragment, TRUE);
+	}
+	return url($path, array('fragment' => $fragment, 'absolute' => TRUE));
 }
