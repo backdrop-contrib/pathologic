@@ -154,34 +154,14 @@ function _pathologic_do_src($matches) {
 
 /**
  * This is an unabashed hack.
- *
- * The only difference between Drupal 5 and Drupal 6, as far as this module is
- * concerned, is that they call the url() function in different ways. Rather
- * than have two versions of the code with ever-so-minute differences strewn
- * about, I can just wrap the calls to url() in a function like this which
- * checks Drupal's version, then calls the function differently depending on
- * whether Drupal is running version 5 (or earlier) or version 6 (or later).
  */
 
 function _pathologic_url($path, $fragment = NULL) {
-	static $five = NULL;
-	if ($five === NULL) {
-		$five = intval(VERSION) < 6;
-	}
-	if ($five) {
-		// I typically shun the ternary operator, but it fits here.
-		return url($path, NULL, $fragment === '' ? NULL : $fragment, TRUE);
-	}
-	// Okay, so the D5 and D6 versions aren't *totally* the same. If we're here,
-	// we're in D6, and can use menu_get_item() to see if the path we're looking
-	// at *really* points to something that is valid according to Drupal's menu
-	// system. The D5 version of this function does not have the same
-	// functionality (it doesn't seem to account for placeholders, so "node" is
-	// good, but "node/2" is bad even if that node exists), and I haven't found
-	// another way to sanely replicate it as of yet. chx said in #drupal that it's
-	// not possible. =[
-	if (menu_get_item($path) === FALSE) {
-		return base_path() . $path;
+	// Does this look like an internal URL?
+	if (!menu_get_item($path) && !db_result(db_query(db_rewrite_sql('SELECT pid FROM {url_alias} WHERE dst = "%s"'), $path)) && $path !== '<front>') {
+		// It's not.
+		global $base_url;
+		return $base_url . $path;
 	}
 	return url($path, array('fragment' => $fragment, 'absolute' => TRUE));
 }
