@@ -16,14 +16,14 @@
  * Implementation of hook_filter().
  */
 
-function pathologic_filter($op, $delta = 0, $format = -1, $text = "") {
+function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
 	if ($op === 'process' && $text !== '') {
 		if (variable_get("filter_pathologic_href_{$format}", TRUE)) {
 			// Do transformation on HREF paths
 			// Make relative
 			$text = preg_replace_callback(_pathologic_abs_regex('href', $format), '_pathologic_abs_to_rel', $text);
 			// Transform attributes
-			$text = preg_replace_callback('|href="([^/#][^:"]+)#?([^:"]*)"|', '_pathologic_do_href', $text);
+			$text = preg_replace_callback('|href="([^/#][^:"#]+)#?([^:"]*)"|', '_pathologic_do_href', $text);
 		}
 		if (variable_get("filter_pathologic_src_{$format}", TRUE)) {
 			// Do transformation on SRC paths
@@ -153,7 +153,9 @@ function _pathologic_do_src($matches) {
 }
 
 /**
- * This is an unabashed hack.
+ * Run the parts through url() if they look like they link to a local Drupal
+ * path. Otherwise, it's a link to a file or something -- try to return it
+ * in one piece.
  */
 
 function _pathologic_url($path, $fragment = NULL) {
@@ -161,7 +163,11 @@ function _pathologic_url($path, $fragment = NULL) {
 	if (!menu_get_item($path) && !db_result(db_query(db_rewrite_sql('SELECT pid FROM {url_alias} WHERE dst = "%s"'), $path)) && $path !== '<front>') {
 		// It's not.
 		global $base_url;
-		return $base_url . $path;
+		$return = $base_url . '/' . $path;
+		if ($fragment !== NULL) {
+			$return .= '#' . $fragment;
+		}
+		return $return;
 	}
 	return url($path, array('fragment' => $fragment, 'absolute' => TRUE));
 }
