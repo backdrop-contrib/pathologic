@@ -160,7 +160,7 @@ function _pathologic_do_src($matches) {
 
 function _pathologic_url($path, $fragment = NULL) {
 	// Does this look like an internal URL?
-	if (!menu_get_item($path) && !db_result(db_query(db_rewrite_sql('SELECT pid FROM {url_alias} WHERE dst = "%s"'), $path)) && $path !== '<front>') {
+	if ($path !== '<front>' && !menu_get_item($path) && drupal_get_path_alias($path) === $path) {
 		// It's not.
 		global $base_url;
 		$return = $base_url . '/' . $path;
