@@ -1,5 +1,5 @@
 name = Pathologic
-description = Finds links using non-absolute URIs in text and formats them properly for your Drupal installation.
+description = Helps avoid broken links and incorrect paths in content.
 package = "Input filters"
 dependencies[] = filter
 core = 6.x
