@@ -2,14 +2,18 @@
 // $Id$
 
 /**
- * Pathologic text filter for Drupal
- * by Garrett Albright
- * 
- * Buy these CDs now:
- * Back to Winnipeg by Fatblueman
- *   http://www.fatblueman.net/
- * A Terrible Flood by esselfortium
- *   http://sl4.poned.com/
+ * @defgroup pathologic Pathologic text filter for Drupal
+ *
+ * This input filter attempts to make sure that link and image paths will
+ * always be correct, even when domain names change, content is moved from one
+ * server to another, Clean URLs is toggled, etc.
+ */
+
+/**
+ * @file
+ * The main and only module file.
+ *
+ * @ingroup pathologic
  */
 
 /**
@@ -104,9 +108,9 @@ function _pathologic_abs_regex($attr, $format) {
 }
 
 /**
- * preg_replace_callback() callback function.
  * Aids in turning an absolute path to a page on the local server to a relative
- * path so that Pathologic can act on it further.
+ * path so that Pathologic can act on it further. preg_replace_callback()
+ * callback function.
  */
 
 function _pathologic_abs_to_rel($matches) {
@@ -121,8 +125,8 @@ function _pathologic_abs_to_rel($matches) {
 }
 
 /**
- * preg_replace_callback() callback function.
  * Properly formats an HREF element. Here's where the magic happens…
+ * preg_replace_callback() callback function.
  */
 
 function _pathologic_do_href($matches) {
@@ -130,18 +134,12 @@ function _pathologic_do_href($matches) {
 }
 
 /**
- * preg_replace_callback() callback function.
- * Okay. If we have a local SRC attribute, there are two possibilities.
- * 
- * One, the more likely one, is that we're referencing a file that physically
- * exists on the disk. In which case the SRC path should be passed along as is.
+ * Return a formatted SRC attribute.
  *
- * Two, the less likely but still possible one, is that we're referencing a
- * Drupal path, in which case we should treat it like an HREF path and run it
- * through url().
- *
- * So let's check to see if the file actually exists. If it does, assume the
- * former; if not, assume the latter and run it through url().
+ * You might think SRC attributes will always be disk files instead of Drupal
+ * paths, but that's not always the case - Imagecache relies on file paths
+ * actually being Drupal paths, at least initially. preg_replace_callback()
+ * callback function.
  */
 
 function _pathologic_do_src($matches) {
@@ -160,11 +158,11 @@ function _pathologic_do_src($matches) {
 
 function _pathologic_url($path, $fragment = NULL) {
 	// Does this look like an internal URL?
-	if ($path !== '<front>' && !menu_get_item($path) && drupal_get_path_alias($path) === $path) {
+	if ($path !== '<front>' && !menu_get_item($path) && !drupal_lookup_path('source', $path)) {
 		// It's not.
 		global $base_url;
 		$return = $base_url . '/' . $path;
-		if ($fragment !== NULL) {
+		if ($fragment !== NULL && $fragment !== '') {
 			$return .= '#' . $fragment;
 		}
 		return $return;
