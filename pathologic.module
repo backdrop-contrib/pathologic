@@ -20,24 +20,28 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Make relative.
       $text = preg_replace_callback(_pathologic_abs_regex('href', $format), '_pathologic_abs_to_rel', $text);
       // Transform attributes.
-      $text = preg_replace_callback('|href="([^/#][^:"#]+)#?([^:"]*)"|', '_pathologic_do_href', $text);
+      // The "internal:" bit in the regex makes life easier for those migrating
+      // from the Path Filter module.
+      $text = preg_replace_callback('|href="(internal:)?([^/#][^:"#\?]+)(\?([^#]+))?(#([^:"]*))?"|', '_pathologic_do_href', $text);
     }
     if (variable_get('filter_pathologic_src_' . $format, TRUE)) {
-      // Do transformation on SRC paths.
+      // Do transformation on src paths.
       // Make relative.
       $text = preg_replace_callback(_pathologic_abs_regex('src', $format), '_pathologic_abs_to_rel', $text);
       // Transform attributes.
-      $text = preg_replace_callback('|src="([^/][^:"]+)"|', '_pathologic_do_src', $text);
+      // The "internal:" bit in the regex makes life easier for those migrating
+      // from the Path Filter module.
+      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?]+)(\?([^#]+))"|', '_pathologic_do_src', $text);
     }
     return $text;
   }
-  if ($op === 'list') {
+  elseif ($op === 'list') {
     return array(t('Pathologic'));
   }
-  if ($op === 'description') {
+  elseif ($op === 'description') {
     return t('Corrects paths in content which reference pages or media on this server.');
   }
-  if ($op === 'settings') {
+  elseif ($op === 'settings') {
     return array('filter_pathologic' => array(
         '#type' => 'fieldset',
         '#title' => t('Pathologic'),
@@ -133,7 +137,7 @@ function _pathologic_abs_to_rel($matches) {
  * Here's where the magic happens. preg_replace_callback() callback function.
  */
 function _pathologic_do_href($matches) {
-  return 'href="' . _pathologic_url($matches[1], $matches[2]) . '"';
+  return 'href="' . _pathologic_url($matches[2], $matches[4], $matches[6]) . '"';
 }
 
 /**
@@ -146,12 +150,12 @@ function _pathologic_do_href($matches) {
  * preg_replace_callback() callback function.
  */
 function _pathologic_do_src($matches) {
-  if (file_exists($matches[1])) {
+  if (file_exists($matches[2])) {
     global $base_url;
 
-    return "src=\"{$base_url}/{$matches[1]}\"";
+    return "src=\"{$base_url}/{$matches[2]}\"";
   }
-  return 'src="' . _pathologic_url($matches[1]) . '"';
+  return 'src="' . _pathologic_url($matches[2], $matches[4]) . '"';
 }
 
 /**
@@ -164,22 +168,27 @@ function _pathologic_do_src($matches) {
  * @param $path
  *   The path to check.
  * @param $query
- *   The query fragment of the path, if any.
+ *   The query fragment of the path, if any (comes after ?).
+ * @param $fragment
+ *   The anchor fragment of the path, if any (comes after #).
  * @return string
  *   The corrected path, if necessary. Else, the reconstructed path.
  */
-function _pathologic_url($path, $fragment = NULL) {
+function _pathologic_url($path, $query = NULL, $fragment = NULL) {
   // Does this look like an internal URL?
   if ($path !== '<front>' && !menu_get_item($path) && !drupal_lookup_path('source', $path)) {
     // It's not.
     global $base_url;
 
     $return = $base_url . '/' . $path;
+    if ($query !== NULL && $query !== '') {
+      $return .= '?' . $query;
+    }
     if ($fragment !== NULL && $fragment !== '') {
       $return .= '#' . $fragment;
     }
     return $return;
   }
-  return url($path, array('fragment' => $fragment, 'absolute' => TRUE));
+  return url($path, array('query' => $query, 'fragment' => $fragment, 'absolute' => TRUE));
 }
 
