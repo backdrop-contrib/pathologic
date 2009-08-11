@@ -1,0 +1,21 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Standard .install file for Pathologic.
+ */
+
+/**
+ * Implementation of hook_uninstall().
+ */
+
+function pathologic_uninstall() {
+  // Iterate through the site's variables and delete ones created by Pathologic.
+  global $conf;
+  foreach (array_keys($conf) as $key) {
+    if (strpos($key, 'filter_pathologic_') === 0) {
+      variable_del($key);
+    }
+  }
+}

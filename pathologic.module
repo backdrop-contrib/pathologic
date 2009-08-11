@@ -22,7 +22,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Transform attributes.
       // The "internal:" bit in the regex makes life easier for those migrating
       // from the Path Filter module.
-      $text = preg_replace_callback('|href="(internal:)?([^/#][^:"#\?]+)(\?([^#]+))?(#([^:"]*))?"|', '_pathologic_do_href', $text);
+      $text = preg_replace_callback('|href="(internal:)?([^/#][^:"#\?&]+)([\?&]([^#]+))?(#([^:"]*))?"|', '_pathologic_do_href', $text);
     }
     if (variable_get('filter_pathologic_src_' . $format, TRUE)) {
       // Do transformation on src paths.
@@ -31,7 +31,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Transform attributes.
       // The "internal:" bit in the regex makes life easier for those migrating
       // from the Path Filter module.
-      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?]+)(\?([^#]+))"|', '_pathologic_do_src', $text);
+      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?&]+)([\?&]([^#]+))"|', '_pathologic_do_src', $text);
     }
     return $text;
   }
@@ -137,7 +137,7 @@ function _pathologic_abs_to_rel($matches) {
  * Here's where the magic happens. preg_replace_callback() callback function.
  */
 function _pathologic_do_href($matches) {
-  return 'href="' . _pathologic_url($matches[2], $matches[4], $matches[6]) . '"';
+  return 'href="' . _pathologic_url($matches[2], isset($matches[4]) ? $matches[4] : NULL, isset($matches[6]) ? $matches[6] : NULL) . '"';
 }
 
 /**
@@ -155,7 +155,7 @@ function _pathologic_do_src($matches) {
 
     return "src=\"{$base_url}/{$matches[2]}\"";
   }
-  return 'src="' . _pathologic_url($matches[2], $matches[4]) . '"';
+  return 'src="' . _pathologic_url($matches[2], isset($matches[4]) ? $matches[4] : NULL) . '"';
 }
 
 /**
