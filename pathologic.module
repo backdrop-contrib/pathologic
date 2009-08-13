@@ -31,7 +31,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Transform attributes.
       // The "internal:" bit in the regex makes life easier for those migrating
       // from the Path Filter module.
-      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?&]+)([\?&]([^#]+))"|', '_pathologic_do_src', $text);
+      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?&]+)([\?&]([^#]+))?"|', '_pathologic_do_src', $text);
     }
     return $text;
   }
@@ -152,7 +152,6 @@ function _pathologic_do_href($matches) {
 function _pathologic_do_src($matches) {
   if (file_exists($matches[2])) {
     global $base_url;
-
     return "src=\"{$base_url}/{$matches[2]}\"";
   }
   return 'src="' . _pathologic_url($matches[2], isset($matches[4]) ? $matches[4] : NULL) . '"';
@@ -191,4 +190,3 @@ function _pathologic_url($path, $query = NULL, $fragment = NULL) {
   }
   return url($path, array('query' => $query, 'fragment' => $fragment, 'absolute' => TRUE));
 }
-
