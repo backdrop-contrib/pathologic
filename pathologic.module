@@ -22,7 +22,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Transform attributes.
       // The "internal:" bit in the regex makes life easier for those migrating
       // from the Path Filter module.
-      $text = preg_replace_callback('|href="(internal:)?([^/#][^:"#\?&]+)([\?&]([^#]+))?(#([^:"]*))?"|', '_pathologic_do_href', $text);
+      $text = preg_replace_callback('|href="(internal:)?([^/#][^:"#\?]+)([\?]([^#]+))?(#([^:"]*))?"|', '_pathologic_do_href', $text);
     }
     if (variable_get('filter_pathologic_src_' . $format, TRUE)) {
       // Do transformation on src paths.
@@ -31,7 +31,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       // Transform attributes.
       // The "internal:" bit in the regex makes life easier for those migrating
       // from the Path Filter module.
-      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?&]+)([\?&]([^#]+))"|', '_pathologic_do_src', $text);
+      $text = preg_replace_callback('|src="(internal:)?([^/][^:"\?]+)([\?]([^#]+))?"|', '_pathologic_do_src', $text);
     }
     return $text;
   }
@@ -39,7 +39,7 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
     return array(t('Pathologic'));
   }
   elseif ($op === 'description') {
-    return t('Corrects paths in content which reference pages or media on this server.');
+    return t('Corrects paths in links and images in your Drupal content in situations which would otherwise cause them to &ldquo;break.&rdquo;');
   }
   elseif ($op === 'settings') {
     return array('filter_pathologic' => array(
@@ -152,7 +152,6 @@ function _pathologic_do_href($matches) {
 function _pathologic_do_src($matches) {
   if (file_exists($matches[2])) {
     global $base_url;
-
     return "src=\"{$base_url}/{$matches[2]}\"";
   }
   return 'src="' . _pathologic_url($matches[2], isset($matches[4]) ? $matches[4] : NULL) . '"';
@@ -175,6 +174,9 @@ function _pathologic_do_src($matches) {
  *   The corrected path, if necessary. Else, the reconstructed path.
  */
 function _pathologic_url($path, $query = NULL, $fragment = NULL) {
+  // We're unescaping HTML entities like &amp; in the hope of avoiding double-
+  // encoding. See: http://drupal.org/node/665900
+  $path = html_entity_decode($path, ENT_COMPAT, 'UTF-8');
   // Does this look like an internal URL?
   if ($path !== '<front>' && !menu_get_item($path) && !drupal_lookup_path('source', $path)) {
     // It's not.
@@ -191,4 +193,3 @@ function _pathologic_url($path, $query = NULL, $fragment = NULL) {
   }
   return url($path, array('query' => $query, 'fragment' => $fragment, 'absolute' => TRUE));
 }
-
