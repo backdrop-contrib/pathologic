@@ -1,0 +1,75 @@
+<?php
+// $Id$
+
+/**
+ * Tests that Pathologic ain't broke.
+ */
+class PathologicTestCase extends DrupalWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Pathologic path filtering',
+      'description' => 'Test Pathologic&rsquo;s path translation and conversion.',
+      'group' => 'Filter',
+    );
+  }
+  
+  function setUp() {
+    parent::setUp('pathologic');
+
+    $this->admin_user = $this->drupalCreateUser(array('administer filters'));
+    $this->drupalLogin($this->admin_user);
+    
+    // Create some filters
+    $both = array(
+      'name' => 'Both',
+/*       'roles[2]' => 1, */
+      'filters[pathologic][status]' => TRUE,
+      'filters[pathologic][settings][href]' => TRUE,
+      'filters[pathologic][settings][src]' => TRUE,
+      'filters[pathologic][settings][local_paths]' => 'http://example.com/',
+    );
+    
+    $src_only = $both;
+    $src_only['name'] = 'SRC only';
+    $src_only['filters[pathologic][settings][href]'] = FALSE;
+    
+    $href_only = $both;
+    $href_only['name'] = 'HREF only';
+    $href_only['filters[pathologic][settings][src]'] = FALSE;
+    
+    $neither = $href_only;
+    $neither['name'] = 'Neither';
+    $neither['filters[pathologic][settings][href]'] = FALSE;
+    
+    $this->drupalPost('admin/config/content/formats/add', $both, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $src_only, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $href_only, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $neither, t('Save configuration'));
+  }
+  
+  function testPaths() {
+    // This seems to be necessary to get it to nitice the new formats
+    drupal_static_reset('filter_formats');
+/*
+    error_log(print_r(filter_formats(), TRUE));
+    dsm(filter_formats());
+*/
+    // Build some paths to check against
+    $paths = array(
+      'admin' => url('admin', array('absolute' => TRUE)),
+      'foo' => url('foo', array('absolute' => TRUE)),
+      'foo/bar' => url('foo/bar', array('absolute' => TRUE)),
+      'foo/bar?baz=qux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'absolute' => TRUE)),
+      'foo/bar#baz' => url('foo/bar', array('fragment' => 'baz', 'absolute' => TRUE)),
+      'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE))
+    );
+    // Simplest case - HREF
+    $this->assertEqual(check_markup('<a href="foo">', 6), '<a href="' . $paths['foo'] . '">', t('Testing %test', array('%test' => '<a href="foo">')));
+    // Slightly more complex - SRC
+    $this->assertEqual(check_markup('<img src="foo/bar">', 5), '<img src="' . $paths['foo/bar'] . '">', t('Testing %test', array('%test' => '<img src="foo/bar">')));
+    // Both
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Testing %test', array('%test' => '<a href="foo"><img src="foo/bar"></a>')));
+    // Neither
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 7), '<a href="foo"><img src="foo/bar"></a>', t('Testing %test', array('%test' => '<a href="foo"><img src="foo/bar"></a>')));
+  }
+}
