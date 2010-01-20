@@ -63,13 +63,25 @@ class PathologicTestCase extends DrupalWebTestCase {
       'foo/bar#baz' => url('foo/bar', array('fragment' => 'baz', 'absolute' => TRUE)),
       'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE))
     );
-    // Simplest case - HREF
-    $this->assertEqual(check_markup('<a href="foo">', 6), '<a href="' . $paths['foo'] . '">', t('Testing %test', array('%test' => '<a href="foo">')));
-    // Slightly more complex - SRC
-    $this->assertEqual(check_markup('<img src="foo/bar">', 5), '<img src="' . $paths['foo/bar'] . '">', t('Testing %test', array('%test' => '<img src="foo/bar">')));
     // Both
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Testing %test', array('%test' => '<a href="foo"><img src="foo/bar"></a>')));
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Both'));
+    // HREF
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 6), '<a href="' . $paths['foo'] . '"><img src="foo/bar"></a>', t('HREF only filtering'));
+    // SRC
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 5), '<a href="foo"><img src="' . $paths['foo/bar'] . '"></a>', t('SRC only'));
     // Neither
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 7), '<a href="foo"><img src="foo/bar"></a>', t('Testing %test', array('%test' => '<a href="foo"><img src="foo/bar"></a>')));
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 7), '<a href="foo"><img src="foo/bar"></a>', t('Neither'));
+    // With query string
+    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string') . $paths['foo/bar?baz=qux']);
+    // With fragment
+    $this->assertEqual(check_markup('<a href="foo/bar#baz">', 4), '<a href="' . $paths['foo/bar#baz'] . '">', t('With fragment'));
+    // With query stirng and fragment
+    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux#quux">', 4), '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">', t('With query string and fragment'));
+    // Dirty URLs
+    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
+    // Path Filter compatibility
+    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
+    // Also considered local
+    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
   }
 }
