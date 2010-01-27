@@ -51,7 +51,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
       '#type' => 'textarea',
       '#title' =>  t('Also considered local'),
       '#default_value' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
-      '#description' => t('Description!'),
+      '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
     ),
   );
 }
