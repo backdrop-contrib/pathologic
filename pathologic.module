@@ -16,7 +16,7 @@
 function pathologic_filter_info() {
   return array(
     'pathologic' => array(
-      'title' => t('Pathologic'),
+      'title' => t('Correct URLs with Pathologic'),
       'process callback' => '_pathologic',
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
@@ -34,24 +34,32 @@ function pathologic_filter_info() {
  * Settings callback for Pathologic.
  */
 function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) {
-  return array( 
+  return array(
+    'reminder' => array(
+      '#type' => 'item',
+      '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
+      '#weight' => -10,
+    ),
     'href' => array(
       '#type' => 'checkbox',
       '#title' => t('Transform values of <em>href</em> attributes'),
       '#default_value' => isset($filter->settings['href']) ? $filter->settings['href'] : $defaults['href'],
       '#description' => t('<em>href</em> attributes are used in link tags.'),
+      '#weight' => 0,
     ),
     'src' => array(
       '#type' => 'checkbox',
       '#title' => t('Transform values of <em>src</em> attributes'),
       '#default_value' => isset($filter->settings['src']) ? $filter->settings['src'] : $defaults['src'],
       '#description' => t('<em>src</em> attributes are used in image tags and tags for other types of embedded media.'),
+      '#weight' => 10,
     ),
     'local_paths' => array(
       '#type' => 'textarea',
       '#title' =>  t('Also considered local'),
       '#default_value' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
       '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
+      '#weight' => 20,
     ),
   );
 }
