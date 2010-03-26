@@ -104,7 +104,13 @@ function _pathologic($text, $filter) {
 
   $pattern = '~(' . $attrs . ')="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~';
   // $regex looks like:
-  // ~(href|src)="(((http://example.com|http://example.org)(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(internal:|\?q=)?)([^"]*))~
+  // ~(href|src)="(
+  //   (
+  //     (internal:|http://example.com|http://example.org)(/?(index.php)?(\?q=)?)|
+  //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
+  //   )
+  //   ([^"]*)
+  // )~
   $text = preg_replace_callback($pattern, '_pathologic_replace', $text);
   return $text;
 }

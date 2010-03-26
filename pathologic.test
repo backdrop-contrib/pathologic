@@ -22,7 +22,6 @@ class PathologicTestCase extends DrupalWebTestCase {
     // Create some filters
     $both = array(
       'name' => 'Both',
-/*       'roles[2]' => 1, */
       'filters[pathologic][status]' => TRUE,
       'filters[pathologic][settings][href]' => TRUE,
       'filters[pathologic][settings][src]' => TRUE,
@@ -50,10 +49,6 @@ class PathologicTestCase extends DrupalWebTestCase {
   function testPaths() {
     // This seems to be necessary to get it to nitice the new formats
     drupal_static_reset('filter_formats');
-/*
-    error_log(print_r(filter_formats(), TRUE));
-    dsm(filter_formats());
-*/
     // Build some paths to check against
     $paths = array(
       'admin' => url('admin', array('absolute' => TRUE)),
