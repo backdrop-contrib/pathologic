@@ -40,20 +40,6 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
       '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
       '#weight' => -10,
     ),
-    'href' => array(
-      '#type' => 'checkbox',
-      '#title' => t('Transform values of <em>href</em> attributes'),
-      '#default_value' => isset($filter->settings['href']) ? $filter->settings['href'] : $defaults['href'],
-      '#description' => t('<em>href</em> attributes are used in link tags.'),
-      '#weight' => 0,
-    ),
-    'src' => array(
-      '#type' => 'checkbox',
-      '#title' => t('Transform values of <em>src</em> attributes'),
-      '#default_value' => isset($filter->settings['src']) ? $filter->settings['src'] : $defaults['src'],
-      '#description' => t('<em>src</em> attributes are used in image tags and tags for other types of embedded media.'),
-      '#weight' => 10,
-    ),
     'local_paths' => array(
       '#type' => 'textarea',
       '#title' =>  t('Also considered local'),
@@ -68,45 +54,34 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
  * Pathologic filter callback.
  */
 function _pathologic($text, $filter) {
-  // Which attributes are we going to be looking for?
-  if ($filter->settings['href'] && $filter->settings['src']) {
-    $attrs = 'href|src';
-  }
-  elseif ($filter->settings['href']) {
-    $attrs = 'href';
-  }
-  elseif ($filter->settings['src']) {
-    $attrs = 'src';
-  }
-  else {
-    // Apparently, we're not configured to work on either HREF or SRC attrs, so…
-    return $text;
-  }
-
   // Parse the list of the paths also considered local.
   $paths_text = trim($filter->settings['local_paths']);
   if ($paths_text === '') {
     $paths = array();
   }
   else {
-    $paths = array_map('trim', explode("\n", trim($filter->settings['local_paths'])));
+    $paths = array_map('trim', explode("\n", $filter->settings['local_paths']));
+    // Quote special characters, but "convert" asterisks
+    // $paths = array_map('trim', explode("\n", preg_replace('/[^\\]\\*/', '[^/]*', preg_quote($filter->settings['local_paths'], '~'))));
   }
   // Add "this" path
   $paths[] = url('<front>', array('absolute' => TRUE));
-  // Remove duplicates, since it's possible "this" path was already in the list
-  $paths = array_unique($paths);
-
+  // Remove duplicates, since it's possible "this" path was already in the list;
+  // also do escaping
+  $paths = array_map('_pathologic_escape', array_unique($paths));
+  dsm($paths);
+  
   // We need to account for the fact that
   // http://example.com/foo
   // http://example.com/?q=foo
   // http://example.com/index.php?q=foo
   // …are all valid.
 
-  $pattern = '~(' . $attrs . ')="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~';
+  $pattern = '~(href|src)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~';
   // $regex looks like:
   // ~(href|src)="(
   //   (
-  //     (internal:|http://example.com|http://example.org)(/?(index.php)?(\?q=)?)|
+  //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
   //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
   //   )
   //   ([^"]*)
@@ -145,6 +120,15 @@ function _pathologic_replace($matches) {
   else {
     $qparts = array();
   }
-
   return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => TRUE));
+}
+
+/**
+ * Escape paths to convert. preg_replace_callback() callback.
+ */
+function _pathologic_escape($path) {
+  // Quote special characters, but "convert" asterisks.
+  // Apparently the special characters in the preg_replace below need to be
+  // double-escaped…?
+  return preg_replace(array('/(?<!\\\)\\\\\*/', '/^https?/'), array('[^/]*', 'https?'), preg_quote($path, '~'));
 }
