@@ -38,13 +38,20 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
     'reminder' => array(
       '#type' => 'item',
       '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
-      '#weight' => -10,
+      '#weight' => 0,
     ),
     'local_paths' => array(
       '#type' => 'textarea',
       '#title' =>  t('Also considered local'),
       '#default_value' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
       '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
+      '#weight' => 10,
+    ),
+    'absolute' => array(
+      '#type' => 'checkbox',
+      '#title' => t('Output full absolute URLs'),
+      '#default_value' => isset($filter->settings['absolute']) ? $filter->settings['absolute'] : TRUE,
+      '#description' => t('If checked, Pathologic will output full absolute URLs, with a protocol and server fragment; this is useful if you want images and links to not break for those reading the content in a feed reader or through some other form of aggregation. However, in cases where the site is being served via both HTTP and HTTPS, it may be necessary to omit the protocol and server fragments to avoid browser issues.'),
       '#weight' => 20,
     ),
   );
@@ -55,6 +62,8 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
  */
 function _pathologic($text, $filter) {
   // Parse the list of the paths also considered local.
+  // TODO: Why are we doing this for every run of the filter? This should be
+  // cached somehow.
   $paths_text = trim($filter->settings['local_paths']);
   if ($paths_text === '') {
     $paths = array();
@@ -69,7 +78,6 @@ function _pathologic($text, $filter) {
   // Remove duplicates, since it's possible "this" path was already in the list;
   // also do escaping
   $paths = array_map('_pathologic_escape', array_unique($paths));
-  dsm($paths);
   
   // We need to account for the fact that
   // http://example.com/foo
@@ -86,6 +94,11 @@ function _pathologic($text, $filter) {
   //   )
   //   ([^"]*)
   // )~
+  
+  // The preg callback function _pathologic_replace needs access to the
+  // $filter->settings['absolute'] value, and this seems to be the best way
+  // to get it to it
+  cache_set('pathologic_absolute', $filter->settings['absolute'], 'cache', CACHE_TEMPORARY);
   $text = preg_replace_callback($pattern, '_pathologic_replace', $text);
   return $text;
 }
@@ -120,7 +133,8 @@ function _pathologic_replace($matches) {
   else {
     $qparts = array();
   }
-  return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => TRUE));
+  $absolute = cache_get('pathologic_absolute');
+  return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => $absolute->data));
 }
 
 /**
