@@ -20,9 +20,8 @@ function pathologic_filter_info() {
       'process callback' => '_pathologic',
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
-        'href' => TRUE,
-        'src' => TRUE,
         'local_paths' => '',
+        'absolute' => TRUE,
       ),
 /*       'tips callback' => '_pathologic_tips', */
       'weight' => 65535,
@@ -61,52 +60,54 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
  * Pathologic filter callback.
  */
 function _pathologic($text, $filter) {
-  // Parse the list of the paths also considered local.
-  // TODO: Why are we doing this for every run of the filter? This should be
-  // cached somehow.
-  $paths_text = trim($filter->settings['local_paths']);
-  if ($paths_text === '') {
-    $paths = array();
-  }
-  else {
-    $paths = array_map('trim', explode("\n", $filter->settings['local_paths']));
-    // Quote special characters, but "convert" asterisks
-    // $paths = array_map('trim', explode("\n", preg_replace('/[^\\]\\*/', '[^/]*', preg_quote($filter->settings['local_paths'], '~'))));
-  }
-  // Add "this" path
-  $paths[] = url('<front>', array('absolute' => TRUE));
-  // Remove duplicates, since it's possible "this" path was already in the list;
-  // also do escaping
-  $paths = array_map('_pathologic_escape', array_unique($paths));
-  
-  // We need to account for the fact that
-  // http://example.com/foo
-  // http://example.com/?q=foo
-  // http://example.com/index.php?q=foo
-  // …are all valid.
+/*   dsm($filter); */
+  $statics = &drupal_static(__FUNCTION__, array());
+  if (!isset($statics[$filter->format])) {
+    // Parse the list of the paths also considered local.
+    $paths_text = trim($filter->settings['local_paths']);
+    if ($paths_text === '') {
+      $paths = array();
+    }
+    else {
+      $paths = array_map('trim', explode("\n", $filter->settings['local_paths']));
+    }
+    // Add "this" path
+    $paths[] = url('<front>', array('absolute' => TRUE));
+    // Remove duplicates, since it's possible "this" path was already in the list;
+    // also do escaping
+    $paths = array_map('_pathologic_escape', array_unique($paths));
 
-  $pattern = '~(href|src)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~';
-  // $regex looks like:
-  // ~(href|src)="(
-  //   (
-  //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
-  //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
-  //   )
-  //   ([^"]*)
-  // )~
-  
-  // The preg callback function _pathologic_replace needs access to the
-  // $filter->settings['absolute'] value, and this seems to be the best way
-  // to get it to it
-  cache_set('pathologic_absolute', $filter->settings['absolute'], 'cache', CACHE_TEMPORARY);
-  $text = preg_replace_callback($pattern, '_pathologic_replace', $text);
-  return $text;
+    // We need to account for the fact that
+    // http://example.com/foo
+    // http://example.com/?q=foo
+    // http://example.com/index.php?q=foo
+    // …are all valid.
+
+    $statics[$filter->format] = array(
+      // The pattern is gonna look like:
+      // ~(href|src)="(
+      //   (
+      //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
+      //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
+      //   )
+      //   ([^"]*)
+      // )~
+      'pattern' => '~(href|src)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~',
+      // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
+      // compatible way. We're using it here so we can pass the value of
+      // $filter->settings['absolute'] to the replacement function. We could
+      // just put the whole replacement function here, but that would just be
+      // silly.
+      'callback' => create_function('$matches', 'return _pathologic_replace($matches, ' . $filter->settings['absolute'] . ');'),
+    );
+  }
+  return preg_replace_callback($statics[$filter->format]['pattern'], $statics[$filter->format]['callback'], $text);
 }
 
 /**
  * Replace the attributes. preg_replace_callback() callback.
  */
-function _pathologic_replace($matches) {
+function _pathologic_replace($matches, $absolute) {
   // Build the full URL, then take it apart
   global $base_url;
   if ($matches[9] === '?q=' || $matches[6] === 'index.php') {
@@ -133,8 +134,8 @@ function _pathologic_replace($matches) {
   else {
     $qparts = array();
   }
-  $absolute = cache_get('pathologic_absolute');
-  return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => $absolute->data));
+/*   $absolute = cache_get('pathologic_absolute'); */
+  return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => $absolute/* ->data */));
 }
 
 /**
