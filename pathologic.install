@@ -5,6 +5,8 @@
  */
 
 /**
+ * Implementation of hook_update_N().
+ *
  * Update to Pathologic 3
  */
 function pathologic_update_6300() {
@@ -21,4 +23,17 @@ function pathologic_update_6300() {
     }
   }
   return array();
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function pathologic_uninstall() {
+  // Iterate through the site's variables and delete ones created by Pathologic.
+  global $conf;
+  foreach (array_keys($conf) as $key) {
+    if (strpos($key, 'filter_pathologic_') === 0) {
+      variable_del($key);
+    }
+  }
 }
