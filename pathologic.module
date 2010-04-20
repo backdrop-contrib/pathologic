@@ -82,14 +82,14 @@ function _pathologic($text, $format) {
 
     $statics[$format] = array(
       // The pattern is gonna look like:
-      // ~(href|src)="(
+      // ~(href|src|HREF|SRC)="(
       //   (
       //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
       //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
       //   )
       //   ([^"]*)
       // )~
-      'pattern' => '~(href|src)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~',
+      'pattern' => '~(href|src|HREF|SRC)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!(/|mailto:|.*:/))(\?q=)?)([^"]*))~',
       // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
       // compatible way. We're using it here so we can pass the value of
       // $filter->settings['absolute'] to the replacement function. We could
