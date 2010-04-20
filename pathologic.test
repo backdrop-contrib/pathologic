@@ -68,5 +68,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->assertEqual(check_markup('<a href="http://foo.example.net/foo"><img src="http://example.org/qux/bar/foo"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo'] . '"></a>', t('Asterisk in domain'));
     // Non-absolute - Note we're using format 5 here
     $this->assertEqual(check_markup('<a href="?q=quuux"><img src="quuux"></a>', 5), '<a href="'. $paths['quuux'] . '"><img src="'. $paths['quuux'] . '"></a>', t('Non-absolute path output'));
+    // Upper-case HREF and SRC params - [#760876]
+    $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="'. $paths['foo'] . '"><IMG SRC="'. $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
   }
 }
