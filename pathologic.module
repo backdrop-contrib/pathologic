@@ -28,25 +28,18 @@ function pathologic_filter($op, $delta = 0, $format = -1, $text = '') {
       '#type' => 'fieldset',
       '#title' => t('Pathologic'),
       '#collapsible' => TRUE,
-/*
-      'reminder' => array(
-        '#type' => 'item',
-        '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
-        '#weight' => 0,
-      ),
-*/
       'filter_pathologic_local_paths_' . $format => array(
         '#type' => 'textarea',
         '#title' =>  t('Also considered local'),
         '#default_value' => variable_get('filter_pathologic_local_paths_' . $format, ''),
-        '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
+        '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature. If the site is using a WYSIWYG content editor such as CKEditor or TinyMCE, you will probably need to enter a single slash (<code>/</code>) in this field.', array('!docs' => 'http://drupal.org/node/257026')),
         '#weight' => 10,
       ),
       'filter_pathologic_absolute_' . $format => array(
         '#type' => 'checkbox',
         '#title' => t('Output full absolute URLs'),
         '#default_value' => variable_get('filter_pathologic_absolute_' . $format, TRUE),
-        '#description' => t('If checked, Pathologic will output full absolute URLs, with a protocol and server fragment; this is useful if you want images and links to not break for those reading the content in a feed reader or through some other form of aggregation. However, in cases where the site is being served via both HTTP and HTTPS, it may be necessary to omit the protocol and server fragments to avoid browser issues.'),
+        '#description' => t('If checked, Pathologic will output full absolute URLs, with a protocol and server fragment (such as <code>http://example.com/foo/bar</code>); this is useful if you want images and links to not break for those reading the content in a feed reader or through some other form of aggregation. However, in cases where the site is being served via both HTTP and HTTPS, it may be necessary to uncheck this box so that protocol and server fragments are omitted in the paths Pathologic creates (such as <code>/foo/bar</code>) to avoid issues where the browser complains about pages containing both secure and insecure content.'),
         '#weight' => 20,
       ),
     ));
