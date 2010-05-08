@@ -84,10 +84,10 @@ function _pathologic($text, $filter) {
 
     $statics[$filter->format] = array(
       // The pattern is gonna look like:
-      // ~(href|src|HREF|SRC)="(?!#)(
+      // ~(href|src|HREF|SRC)="(
       //   (
       //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
-      //     (?!(/|mailto:|.*:/))(internal:|\?q=)?
+      //     (?!([#/]|mailto:|.*:/))(internal:|\?q=)?
       //   )
       //   ([^"]*)
       // )~
