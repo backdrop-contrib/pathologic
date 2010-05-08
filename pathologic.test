@@ -54,8 +54,8 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Links and images'));
     // With query string
     $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string'));
-    // With fragment
-    $this->assertEqual(check_markup('<a href="foo/bar#baz">', 4), '<a href="' . $paths['foo/bar#baz'] . '">', t('With fragment'));
+    // With fragment (but not only fragment)
+    $this->assertEqual(check_markup('<a href="foo/bar#baz"></a><a href="#baz"></a>', 4), '<a href="' . $paths['foo/bar#baz'] . '"></a><a href="#baz"></a>', t('With fragment, but not only fragment'));
     // With query stirng and fragment
     $this->assertEqual(check_markup('<a href="foo/bar?baz=qux#quux">', 4), '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">', t('With query string and fragment'));
     // Dirty URLs
