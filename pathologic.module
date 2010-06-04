@@ -86,12 +86,13 @@ function _pathologic($text, $filter) {
       // The pattern is gonna look like:
       // ~(href|src|HREF|SRC)="(
       //   (
+      //     /|
       //     (internal:|https?://example\.com|https?://example\.org)(/?(index\.php)?(\?q=)?)|
-      //     (?!([#/]|mailto:|.*:/))(internal:|\?q=)?
+      //     (?!([#/]|mailto:|.*:/))(\?q=)?
       //   )
       //   ([^"]*)
       // )~
-      'pattern' => '~(href|src|HREF|SRC)="(((internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!([#/]|mailto:|.*:/))(\?q=)?)([^"]*))~',
+      'pattern' => '~(href|src|HREF|SRC)="((/|(internal:|' . implode('|', $paths) . ')(/?(index.php)?(\?q=)?)|(?!([#/]|mailto:|.*:/))(\?q=)?)([^"]*))~',
       // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
       // compatible way. We're using it here so we can pass the value of
       // $filter->settings['absolute'] to the replacement function. We could
@@ -121,7 +122,7 @@ function _pathologic_replace($matches, $absolute) {
   // the path is just one character (just '/'), but url() seems to be okay with
   // that.
   $parts['path'] = drupal_substr($parts['path'], 1);
-
+  
   // Need to parse the query parts
   if (isset($parts['query'])) {
     parse_str($parts['query'], $qparts);

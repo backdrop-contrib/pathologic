@@ -44,6 +44,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     drupal_static_reset('filter_formats');
     // Build some paths to check against
     $paths = array(
+      'front' => url('<front>', array('absolute' => TRUE)),
       'admin' => url('admin', array('absolute' => TRUE)),
       'foo' => url('foo', array('absolute' => TRUE)),
       'foo/bar' => url('foo/bar', array('absolute' => TRUE)),
@@ -66,11 +67,13 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
     // Also considered local
     $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
-    // Asterisks local paths
+    // Asterisks in domain names - [#758118]
     $this->assertEqual(check_markup('<a href="http://foo.example.net/foo"><img src="http://example.org/qux/bar/foo"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo'] . '"></a>', t('Asterisk in domain'));
     // Non-absolute - Note we're using format 5 here
     $this->assertEqual(check_markup('<a href="?q=quuux"><img src="quuux"></a>', 5), '<a href="' . $paths['quuux'] . '"><img src="' . $paths['quuux'] . '"></a>', t('Non-absolute path output'));
     // Upper-case HREF and SRC params - [#760876]
     $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="' . $paths['foo'] . '"><IMG SRC="' . $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
+    // Paths with just slashes - [#817722] sort of
+    $this->assertEqual(check_markup('<a href="/"></a>', 4), '<a href="' . $paths['front'] . '"></a>', t('Linking to front page with href="/"'));
   }
 }
