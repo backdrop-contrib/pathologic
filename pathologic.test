@@ -51,7 +51,7 @@ class PathologicTestCase extends DrupalWebTestCase {
       'quuux' => url('quuux', array('absolute' => FALSE)),
     );
     // Links and images
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Links and images'));
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Links and images'));
     // With query string
     $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string'));
     // With fragment (but not only fragment)
@@ -59,16 +59,16 @@ class PathologicTestCase extends DrupalWebTestCase {
     // With query stirng and fragment
     $this->assertEqual(check_markup('<a href="foo/bar?baz=qux#quux">', 4), '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">', t('With query string and fragment'));
     // Dirty URLs
-    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
+    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
     // Path Filter compatibility
-    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
+    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
     // Also considered local
-    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
+    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
     // Asterisks local paths
-    $this->assertEqual(check_markup('<a href="http://foo.example.net/foo"><img src="http://example.org/qux/bar/foo"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo'] . '"></a>', t('Asterisk in domain'));
+    $this->assertEqual(check_markup('<a href="http://foo.example.net/foo"><img src="http://example.org/qux/bar/foo"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="'. $paths['foo'] . '"></a>', t('Asterisk in domain'));
     // Non-absolute - Note we're using format 5 here
-    $this->assertEqual(check_markup('<a href="?q=quuux"><img src="quuux"></a>', 5), '<a href="'. $paths['quuux'] . '"><img src="'. $paths['quuux'] . '"></a>', t('Non-absolute path output'));
+    $this->assertEqual(check_markup('<a href="?q=quuux"><img src="quuux"></a>', 5), '<a href="' . $paths['quuux'] . '"><img src="'. $paths['quuux'] . '"></a>', t('Non-absolute path output'));
     // Upper-case HREF and SRC params - [#760876]
-    $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="'. $paths['foo'] . '"><IMG SRC="'. $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
+    $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="' . $paths['foo'] . '"><IMG SRC="'. $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
   }
 }

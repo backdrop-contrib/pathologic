@@ -11,7 +11,7 @@
  */
 
 /**
- * Implementation of hook_filter_info().
+ * Implements hook_filter_info().
  */
 function pathologic_filter_info() {
   return array(
@@ -120,7 +120,7 @@ function _pathologic_replace($matches, $absolute) {
   // Trim initial slash off path. Note that substr() will return FALSE here if
   // the path is just one character (just '/'), but url() seems to be okay with
   // that.
-  $parts['path'] = substr($parts['path'], 1);
+  $parts['path'] = drupal_substr($parts['path'], 1);
 
   // Need to parse the query parts
   if (isset($parts['query'])) {
