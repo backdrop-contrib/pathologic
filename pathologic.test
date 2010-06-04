@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Pathologic behavior testing.
+ */
+
+/**
  * Tests that Pathologic ain't broke.
  */
 class PathologicTestCase extends DrupalWebTestCase {
@@ -12,33 +17,42 @@ class PathologicTestCase extends DrupalWebTestCase {
       'group' => 'Filter',
     );
   }
-  
+
   function setUp() {
     parent::setUp('pathologic');
 
     $this->admin_user = $this->drupalCreateUser(array('administer filters'));
     $this->drupalLogin($this->admin_user);
-    
-    // Create a text format
-    $format = array(
-      'name' => 'Pathologic test',
+
+    // Create some filters
+    $both = array(
+      'name' => 'Both',
       'filters[pathologic][status]' => TRUE,
-      'filters[pathologic][settings][local_paths]' => "http://example.com/\nhttps://*.example.net/\nhttp://example.org/*/bar/",
-      'filters[pathologic][settings][absolute]' => TRUE,
+      'filters[pathologic][settings][href]' => TRUE,
+      'filters[pathologic][settings][src]' => TRUE,
+      'filters[pathologic][settings][local_paths]' => 'http://example.com/',
     );
-    // This will be format 4 (the testing system seems to create three by
-    // default…? Why?)
-    $this->drupalPost('admin/config/content/formats/add', $format, t('Save configuration'));
-    
-    // Create another format with absolute paths off
-    $format['name'] = 'Pathologic test - absolute off';
-    $format['filters[pathologic][settings][absolute]'] = FALSE;
-    // This will be format 5
-    $this->drupalPost('admin/config/content/formats/add', $format, t('Save configuration'));
+
+    $src_only = $both;
+    $src_only['name'] = 'SRC only';
+    $src_only['filters[pathologic][settings][href]'] = FALSE;
+
+    $href_only = $both;
+    $href_only['name'] = 'HREF only';
+    $href_only['filters[pathologic][settings][src]'] = FALSE;
+
+    $neither = $href_only;
+    $neither['name'] = 'Neither';
+    $neither['filters[pathologic][settings][href]'] = FALSE;
+
+    $this->drupalPost('admin/config/content/formats/add', $both, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $src_only, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $href_only, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/add', $neither, t('Save configuration'));
   }
-  
+
   function testPaths() {
-    // This seems to be necessary to get it to notice the new formats
+    // This seems to be necessary to get it to nitice the new formats
     drupal_static_reset('filter_formats');
     // Build some paths to check against
     $paths = array(
@@ -47,28 +61,27 @@ class PathologicTestCase extends DrupalWebTestCase {
       'foo/bar' => url('foo/bar', array('absolute' => TRUE)),
       'foo/bar?baz=qux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'absolute' => TRUE)),
       'foo/bar#baz' => url('foo/bar', array('fragment' => 'baz', 'absolute' => TRUE)),
-      'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE)),
-      'quuux' => url('quuux', array('absolute' => FALSE)),
+      'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE))
     );
-    // Links and images
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Links and images'));
+    // Both
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Both'));
+    // HREF
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 6), '<a href="' . $paths['foo'] . '"><img src="foo/bar"></a>', t('HREF only filtering'));
+    // SRC
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 5), '<a href="foo"><img src="' . $paths['foo/bar'] . '"></a>', t('SRC only'));
+    // Neither
+    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 7), '<a href="foo"><img src="foo/bar"></a>', t('Neither'));
     // With query string
-    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string'));
-    // With fragment (but not only fragment)
-    $this->assertEqual(check_markup('<a href="foo/bar#baz"></a><a href="#baz"></a>', 4), '<a href="' . $paths['foo/bar#baz'] . '"></a><a href="#baz"></a>', t('With fragment, but not only fragment'));
+    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string') . $paths['foo/bar?baz=qux']);
+    // With fragment
+    $this->assertEqual(check_markup('<a href="foo/bar#baz">', 4), '<a href="' . $paths['foo/bar#baz'] . '">', t('With fragment'));
     // With query stirng and fragment
     $this->assertEqual(check_markup('<a href="foo/bar?baz=qux#quux">', 4), '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">', t('With query string and fragment'));
     // Dirty URLs
-    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
+    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
     // Path Filter compatibility
-    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
+    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
     // Also considered local
-    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
-    // Asterisks local paths
-    $this->assertEqual(check_markup('<a href="http://foo.example.net/foo"><img src="http://example.org/qux/bar/foo"></a>', 4), '<a href="'. $paths['foo'] . '"><img src="'. $paths['foo'] . '"></a>', t('Asterisk in domain'));
-    // Non-absolute - Note we're using format 5 here
-    $this->assertEqual(check_markup('<a href="?q=quuux"><img src="quuux"></a>', 5), '<a href="'. $paths['quuux'] . '"><img src="'. $paths['quuux'] . '"></a>', t('Non-absolute path output'));
-    // Upper-case HREF and SRC params - [#760876]
-    $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="'. $paths['foo'] . '"><IMG SRC="'. $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
+    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
   }
 }
