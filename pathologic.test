@@ -44,7 +44,8 @@ class PathologicTestCase extends DrupalWebTestCase {
     drupal_static_reset('filter_formats');
     // Build some paths to check against
     $paths = array(
-      'front' => url('<front>', array('absolute' => TRUE)),
+      '/' => url('<front>', array('absolute' => TRUE)),
+      '/#foo' => url('<front>', array('fragment' => 'foo', 'absolute' => TRUE)),
       'admin' => url('admin', array('absolute' => TRUE)),
       'foo' => url('foo', array('absolute' => TRUE)),
       'foo/bar' => url('foo/bar', array('absolute' => TRUE)),
@@ -74,6 +75,6 @@ class PathologicTestCase extends DrupalWebTestCase {
     // Upper-case HREF and SRC params - [#760876]
     $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="' . $paths['foo'] . '"><IMG SRC="' . $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
     // Paths with just slashes - [#817722] sort of
-    $this->assertEqual(check_markup('<a href="/"></a>', 4), '<a href="' . $paths['front'] . '"></a>', t('Linking to front page with href="/"'));
+    $this->assertEqual(check_markup('<a href="/"></a><a href="/#foo"></a>', 4), '<a href="' . $paths['/'] . '"></a><a href="' . $paths['/#foo'] . '"></a>', t('Linking to front page with href="/"'));
   }
 }
