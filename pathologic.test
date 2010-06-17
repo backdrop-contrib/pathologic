@@ -53,6 +53,7 @@ class PathologicTestCase extends DrupalWebTestCase {
       'foo/bar#baz' => url('foo/bar', array('fragment' => 'baz', 'absolute' => TRUE)),
       'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE)),
       'quuux' => url('quuux', array('absolute' => FALSE)),
+      'föö bár%20%E3%83%90%E3%83%83%E3%82%BA' => url('föö bár バッズ', array('absolute' => TRUE)),
     );
     // Links and images
     $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Links and images'));
@@ -76,5 +77,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->assertEqual(check_markup('<A HREF="foo"><IMG SRC="foo/bar"></A>', 4), '<A HREF="' . $paths['foo'] . '"><IMG SRC="' . $paths['foo/bar'] . '"></A>', t('Old-skool upper-case attribute names'));
     // Paths with just slashes - [#817722] sort of
     $this->assertEqual(check_markup('<a href="/"></a><a href="/#foo"></a>', 4), '<a href="' . $paths['/'] . '"></a><a href="' . $paths['/#foo'] . '"></a>', t('Linking to front page with href="/"'));
+    // Spaces, funky characters, already encoded - [#826558]
+    $this->assertEqual(check_markup('<img src="föö bár%20%E3%83%90%E3%83%83%E3%82%BA" />', 4), '<img src="' . $paths['föö bár%20%E3%83%90%E3%83%83%E3%82%BA'] . '" />', t('Character encoding'));
   }
 }
