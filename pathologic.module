@@ -101,7 +101,7 @@ function _pathologic($text, $format) {
 function _pathologic_replace($matches, $absolute) {
   // Build the full URL, then take it apart
   $parts = parse_url('http://example.com/' . urldecode($matches[3]));
-  if ($parts['path'] === '/' | $parts['path'] === '//') {
+  if ($parts['path'] === '/' || $parts['path'] === '//') {
     // '//' will be the case if the original path was just a slash
     $parts['path'] = '<front>';
   }
@@ -109,7 +109,7 @@ function _pathologic_replace($matches, $absolute) {
     // Trim initial slash off path.
     $parts['path'] = drupal_substr($parts['path'], 1);
   }
-  
+
   // Need to parse the query parts
   if (isset($parts['query'])) {
     parse_str($parts['query'], $qparts);
@@ -121,7 +121,24 @@ function _pathologic_replace($matches, $absolute) {
   else {
     $qparts = array();
   }
-  return $matches[1] . '="' . url($parts['path'], array('query' => $qparts, 'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL, 'absolute' => $absolute)) . '"';
+  
+  // Check if this is a menu item. If yes, we want to try to translate the path.
+  if (menu_get_item($parts['path'])) {
+    global $language;
+  }
+  else {
+    $language = NULL;
+  }
+ 
+  return $matches[1] . '="' . url(
+    $parts['path'],
+    array(
+      'query' => $qparts,
+      'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
+      'absolute' => $absolute,
+      'language' => $language,
+    )
+  ) . '"';
 }
 
 
