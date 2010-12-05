@@ -128,9 +128,19 @@ function _pathologic_replace($matches, $absolute) {
   }
   else {
     $language = NULL;
+    // On multi-lingual sites, language_url_rewrite() will be called and may
+    // rewrite the link in ways we don't want:
+    // http://drupal.org/node/961618
+    // So here's a stupid workaround to detect if that's probably about to
+    // happen and temporarily override a variable to stop that.
+    $orig_lang_neg = variable_get('language_negotiation', LANGUAGE_NEGOTIATION_NONE);
+    if ($orig_lang_neg !== LANGUAGE_NEGOTIATION_NONE) {
+      global $conf;
+      $conf['language_negotiation'] = LANGUAGE_NEGOTIATION_NONE;
+    }
   }
- 
-  return $matches[1] . '="' . url(
+
+  $url = url(
     $parts['path'],
     array(
       'query' => $qparts,
@@ -138,7 +148,15 @@ function _pathologic_replace($matches, $absolute) {
       'absolute' => $absolute,
       'language' => $language,
     )
-  ) . '"';
+  );
+
+  // Reset the language_negotiation variable if necessary.
+  if (isset($conf)) {
+    $conf['language_negotiation'] = $orig_lang_neg;
+  }
+
+  // $matches[1] will be "src" or "href"
+  return "{$matches[1]}=\"{$url}\"";
 }
 
 
