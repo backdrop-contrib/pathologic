@@ -25,25 +25,17 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->drupalLogin($this->admin_user);
 
     // Create some filters
-    $both = array(
-      'name' => 'Both',
+    $non_abs = array(
+      'name' => 'Non Absolute',
       'filters[pathologic][status]' => TRUE,
-      'filters[pathologic][settings][href]' => TRUE,
-      'filters[pathologic][settings][src]' => TRUE,
       'filters[pathologic][settings][local_paths]' => 'http://example.com/',
+      'filters[pathologic][settings][absolute]' => FALSE,
     );
 
-    $src_only = $both;
-    $src_only['name'] = 'SRC only';
-    $src_only['filters[pathologic][settings][href]'] = FALSE;
+    $abs = $non_abs;
+    $abs['filters[pathologic][settings][local_paths]'] = '';
+    $abs['filters[pathologic][settings][absolute]'] => FALSE,
 
-    $href_only = $both;
-    $href_only['name'] = 'HREF only';
-    $href_only['filters[pathologic][settings][src]'] = FALSE;
-
-    $neither = $href_only;
-    $neither['name'] = 'Neither';
-    $neither['filters[pathologic][settings][href]'] = FALSE;
 
     $this->drupalPost('admin/config/content/formats/add', $both, t('Save configuration'));
     $this->drupalPost('admin/config/content/formats/add', $src_only, t('Save configuration'));

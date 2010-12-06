@@ -21,7 +21,7 @@ function pathologic_filter_info() {
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
         'local_paths' => '',
-        'absolute' => FALSE,
+        'absolute' => TRUE,
       ),
 /*       'tips callback' => '_pathologic_tips', */
       'weight' => 65535,
