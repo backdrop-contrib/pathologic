@@ -8,6 +8,9 @@
 
 /**
  * Tests that Pathologic ain't broke.
+ *
+ * We extend FilterUnitTestCase because it has some nice methods that we also
+ * want to bea ble to use.
  */
 class PathologicTestCase extends DrupalWebTestCase {
   public static function getInfo() {
@@ -20,60 +23,104 @@ class PathologicTestCase extends DrupalWebTestCase {
 
   function setUp() {
     parent::setUp('pathologic');
-
-    $this->admin_user = $this->drupalCreateUser(array('administer filters'));
-    $this->drupalLogin($this->admin_user);
-
-    // Create some filters
-    $non_abs = array(
-      'name' => 'Non Absolute',
-      'filters[pathologic][status]' => TRUE,
-      'filters[pathologic][settings][local_paths]' => 'http://example.com/',
-      'filters[pathologic][settings][absolute]' => FALSE,
-    );
-
-    $abs = $non_abs;
-    $abs['filters[pathologic][settings][local_paths]'] = '';
-    $abs['filters[pathologic][settings][absolute]'] => FALSE,
-
-
-    $this->drupalPost('admin/config/content/formats/add', $both, t('Save configuration'));
-    $this->drupalPost('admin/config/content/formats/add', $src_only, t('Save configuration'));
-    $this->drupalPost('admin/config/content/formats/add', $href_only, t('Save configuration'));
-    $this->drupalPost('admin/config/content/formats/add', $neither, t('Save configuration'));
   }
 
-  function testPaths() {
-    // This seems to be necessary to get it to nitice the new formats
-    drupal_static_reset('filter_formats');
-    // Build some paths to check against
-    $paths = array(
-      'admin' => url('admin', array('absolute' => TRUE)),
-      'foo' => url('foo', array('absolute' => TRUE)),
-      'foo/bar' => url('foo/bar', array('absolute' => TRUE)),
-      'foo/bar?baz=qux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'absolute' => TRUE)),
-      'foo/bar#baz' => url('foo/bar', array('fragment' => 'baz', 'absolute' => TRUE)),
-      'foo/bar?baz=qux#quux' => url('foo/bar', array('query' => array('baz' => 'qux'), 'fragment' => 'quux', 'absolute' => TRUE))
+  function testPathologic () {
+    // Build a phony filter
+    $filter = new stdClass;
+    $filter->callback = '_pathologic';
+    $filter->settings = array(
+      'absolute' => TRUE,
+      'local_paths' => '',
     );
-    // Both
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Both'));
-    // HREF
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 6), '<a href="' . $paths['foo'] . '"><img src="foo/bar"></a>', t('HREF only filtering'));
-    // SRC
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 5), '<a href="foo"><img src="' . $paths['foo/bar'] . '"></a>', t('SRC only'));
-    // Neither
-    $this->assertEqual(check_markup('<a href="foo"><img src="foo/bar"></a>', 7), '<a href="foo"><img src="foo/bar"></a>', t('Neither'));
-    // With query string
-    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux">', 4), '<a href="' . $paths['foo/bar?baz=qux'] . '">', t('With query string') . $paths['foo/bar?baz=qux']);
-    // With fragment
-    $this->assertEqual(check_markup('<a href="foo/bar#baz">', 4), '<a href="' . $paths['foo/bar#baz'] . '">', t('With fragment'));
-    // With query stirng and fragment
-    $this->assertEqual(check_markup('<a href="foo/bar?baz=qux#quux">', 4), '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">', t('With query string and fragment'));
-    // Dirty URLs
-    $this->assertEqual(check_markup('<a href="?q=foo"><img src="index.php?q=foo/bar"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '"></a>', t('Dirty URLs'));
-    // Path Filter compatibility
-    $this->assertEqual(check_markup('<a href="internal:foo"><img src="internal:foo/bar?baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Path Filter back compatibility'));
-    // Also considered local
-    $this->assertEqual(check_markup('<a href="http://example.com/foo"><img src="http://example.com/index.php?q=foo/bar&baz=qux"></a>', 4), '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '"></a>', t('Also considered local'));
+    $filter->format = 0;
+
+    // Build some paths to check against
+    $test_paths = array(
+      'foo' => array(
+        'path' => 'foo',
+        'opts' => array()
+      ),
+      'foo/bar' => array(
+        'path' => 'foo/bar',
+        'opts' => array()
+      ),
+      'foo/bar?baz' => array(
+        'path' => 'foo/bar',
+        'opts' => array('query' => array('baz' => NULL))
+      ),
+      'foo/bar?baz=qux' => array(
+        'path' => 'foo/bar',
+        'opts' => array('query' => array('baz' => 'qux'))
+      ),
+      'foo/bar#baz' => array(
+        'path' => 'foo/bar',
+        'opts' => array('fragment' => 'baz'),
+      ),
+      'foo/bar?baz=qux#quux' => array(
+        'path' => 'foo/bar',
+        'opts' => array(
+          'query' => array('baz' => 'qux'),
+          'fragment' => 'quux',
+        ),
+      ),
+    );
+
+    // Run tests with clean URLs both enabled and disabled
+    foreach (array(TRUE, FALSE) as $clean_url) {
+      variable_set('clean_url', $clean_url);
+      // Run tests with absoulte filtering enabled and disabled
+      foreach (array(TRUE, FALSE) as $absolute) {
+        $filter->settings['absolute'] = $absolute;
+        $filter->format++;
+        $paths = array();
+        foreach ($test_paths as $path => $args) {
+          $args['opts']['absolute'] = $absolute;
+          $paths[$path] = url($args['path'], $args['opts']);
+        }
+        $t10ns = array(
+          '!clean' => $clean_url ? t('Yes') : t('No'),
+          '!abs' => $absolute ? t('Yes') : t('No'),
+        );
+
+        $this->assertEqual(
+          _pathologic('<a href="foo"><img src="foo/bar" /></a>', $filter),
+          '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>', 
+          t('Simple paths. Clean URLs: !clean; absolute: !abs.', $t10ns)
+        );
+        $this->assertEqual(
+          _pathologic('<a href="foo/bar?baz"><img src="foo/bar?baz=qux" /></a>', $filter),
+          '<a href="' . $paths['foo/bar?baz'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '" /></a>',
+          t('Paths with query string. Clean URLs: !clean; absolute: !abs.', $t10ns)
+        );
+        $this->assertEqual(
+          _pathologic('<a href="foo/bar#baz">', $filter),
+          '<a href="' . $paths['foo/bar#baz'] . '">',
+          t('Path with fragment. Clean URLs: !clean; absolute: !abs.', $t10ns)
+        );
+        $this->assertEqual(
+          _pathologic('<a href="foo/bar?baz=qux#quux">', $filter),
+          '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">',
+          t('Path with query string and fragment. Clean URLs: !clean; absolute: !abs.', $t10ns)
+        );
+      }
+    }
+    // Test internal: and also considered local
+    $filter->settings = array(
+      'absolute' => TRUE,
+      'local_paths' => "http://example.com/\nhttp://example.org/",
+    );
+    $filter->format++;
+    $this->assertEqual(
+      _pathologic('<a href="internal:foo">', $filter),
+      '<a href="' . url('foo', array('absolute' => TRUE)) . '">',
+      t('Path Filter compatibility (internal:)')
+    );
+    $this->assertEqual(
+      _pathologic('<a href="http://example.com/foo"><img src="http://example.org/bar.jpeg" /></a>', $filter),
+      '<a href="' . url('foo', array('absolute' => TRUE)) . '"><img src="' . url('bar.jpeg', array('absolute' => TRUE)) . '" /></a>',
+      t('"Also considered local" paths')
+    );
+    file_put_contents('/var/tmp/pathologic', _pathologic('<a href="http://example.com/foo"><img src="http://example.org/bar.jpeg" /></a>', $filter) . "\n");
   }
 }

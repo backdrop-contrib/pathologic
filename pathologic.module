@@ -101,7 +101,7 @@ function _pathologic($text, $filter) {
       // $filter->settings['absolute'] to the replacement function. We could
       // just put the whole replacement function here, but that would just be
       // silly.
-      'callback' => create_function('$matches', 'return _pathologic_replace($matches, ' . $filter->settings['absolute'] . ');'),
+      'callback' => create_function('$matches', 'return _pathologic_replace($matches, ' . ($filter->settings['absolute'] ? 'TRUE' : 'FALSE') . ');'),
     );
   }
   return preg_replace_callback($statics[$filter->format]['pattern'], $statics[$filter->format]['callback'], $text);
@@ -129,9 +129,18 @@ function _pathologic_replace($matches, $absolute) {
       $parts['path'] = $qparts['q'];
       unset($qparts['q']);
     }
+    foreach ($qparts as $key => $qpart) {
+      if ($qpart === '') {
+        // In a query string, this is a key for which there isn't a value; for
+        // example, the "baz" in "foo=bar&baz&qux=quux". In order for url() (or,
+        // more specifically, drupal_http_build_query()) to handle this
+        // correctly, it should have a value of NULL.
+        $qparts[$key] = NULL;
+      }
+    }
   }
   else {
-    $qparts = array();
+    $qparts = NULL;
   }
   
   $url = url(
