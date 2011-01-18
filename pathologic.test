@@ -121,6 +121,5 @@ class PathologicTestCase extends DrupalWebTestCase {
       '<a href="' . url('foo', array('absolute' => TRUE)) . '"><img src="' . url('bar.jpeg', array('absolute' => TRUE)) . '" /></a>',
       t('"Also considered local" paths')
     );
-    file_put_contents('/var/tmp/pathologic', _pathologic('<a href="http://example.com/foo"><img src="http://example.org/bar.jpeg" /></a>', $filter) . "\n");
   }
 }
