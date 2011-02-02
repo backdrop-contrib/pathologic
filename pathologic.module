@@ -78,13 +78,13 @@ function _pathologic($text, $filter) {
     // Remove duplicates, since it's possible "this" path was already in the list;
     // also do escaping
     $paths = array_map('_pathologic_escape', array_unique($paths));
-  
+
     // We need to account for the fact that
     // http://example.com/foo
     // http://example.com/?q=foo
     // http://example.com/index.php?q=foo
     // …are all valid.
-  
+
     $statics[$filter->format] = array(
       // The pattern is gonna look like:
       // ~(href|src|HREF|SRC)="
@@ -142,7 +142,7 @@ function _pathologic_replace($matches, $absolute) {
   else {
     $qparts = NULL;
   }
-  
+
   $url = url(
     $parts['path'],
     array(

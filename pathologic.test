@@ -25,7 +25,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     parent::setUp('pathologic');
   }
 
-  function testPathologic () {
+  function testPathologic() {
     // Build a phony filter
     $filter = new stdClass;
     $filter->callback = '_pathologic';
@@ -85,7 +85,7 @@ class PathologicTestCase extends DrupalWebTestCase {
 
         $this->assertEqual(
           _pathologic('<a href="foo"><img src="foo/bar" /></a>', $filter),
-          '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>', 
+          '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>',
           t('Simple paths. Clean URLs: !clean; absolute: !abs.', $t10ns)
         );
         $this->assertEqual(
