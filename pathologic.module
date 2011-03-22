@@ -85,16 +85,17 @@ function _pathologic($text, $filter) {
     // …are all valid.
 
     $statics[$filter->format] = array(
-      // The pattern is gonna look like:
-      // ~(href|src|HREF|SRC)="
-      // (internal:|https?://example\.com|https?://example\.org)?
-      // (
-      //   /(#.*)?|
-      //   (?!(#|/|mailto:|[a-z]+:/))
-      //   ((index\.php)?(\?q=)?)
-      //   ([^"]*)
-      // )"~
-      'pattern' => '~(href|src|HREF|SRC)="(internal:|' . implode('|', $paths) . ')?(/(#.*)?|(?!(#|/|mailto:|[a-z]+:/))((index\.php)?(\?q=)?)([^"]*))"~',
+      'pattern' => '
+        ~(href|src|HREF|SRC)="                   # HTML attributes to search for
+        (internal:|' . implode('|', $paths) . ')?  # Path prefixes to search for
+        (
+          /(\#.*)?|                      # A / path with an anchor fragment, or…
+          (?!(\#|/|mailto:|[a-z]+:/))                 # Exclude likely protocols
+          ((index\.php)?(\?q=)?)       # Allow for paths which include index.php
+                                                                    # and/or ?q=
+          ([^"]*)                                       # Finally, get the path.
+        )"~x
+      ',
       // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
       // compatible way. We're using it here so we can pass the value of
       // $filter->settings['absolute'] to the replacement function. We could
