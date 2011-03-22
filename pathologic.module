@@ -86,7 +86,8 @@ function _pathologic($text, $filter) {
 
     $statics[$filter->format] = array(
       'pattern' => '
-        ~(href|src|HREF|SRC)="                   # HTML attributes to search for
+        ~(href|src|action|longdesc|HREF|SRC|ACTION|LONGDESC)=" # HTML attributes
+                                                                 # to search for
         (internal:|' . implode('|', $paths) . ')?  # Path prefixes to search for
         (
           /(\#.*)?|                      # A / path with an anchor fragment, or…

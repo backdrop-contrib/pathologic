@@ -88,8 +88,8 @@ class PathologicTestCase extends DrupalWebTestCase {
           t('Simple paths. Clean URLs: !clean; absolute: !abs.', $t10ns)
         );
         $this->assertEqual(
-          _pathologic('<a href="foo/bar?baz"><img src="foo/bar?baz=qux" /></a>', $filter),
-          '<a href="' . $paths['foo/bar?baz'] . '"><img src="' . $paths['foo/bar?baz=qux'] . '" /></a>',
+          _pathologic('<form action="foo/bar?baz"><IMG LONGDESC="foo/bar?baz=qux" /></a>', $filter),
+          '<form action="' . $paths['foo/bar?baz'] . '"><IMG LONGDESC="' . $paths['foo/bar?baz=qux'] . '" /></a>',
           t('Paths with query string. Clean URLs: !clean; absolute: !abs.', $t10ns)
         );
         $this->assertEqual(
