@@ -22,7 +22,6 @@ function pathologic_filter_info() {
         'local_paths' => '',
         'absolute' => TRUE,
       ),
-/*       'tips callback' => '_pathologic_tips', */
       'weight' => 65535,
     )
   );
@@ -90,7 +89,7 @@ function _pathologic($text, $filter) {
                                                                  # to search for
         (internal:|' . implode('|', $paths) . ')?  # Path prefixes to search for
         (
-          /(\#.*)?|                      # A / path with an anchor fragment, or…
+          /(\#.*)?|              # A / path with a possible anchor fragment, or…
           (?!(\#|/|mailto:|[a-z]+:/))                 # Exclude likely protocols
           ((index\.php)?(\?q=)?)       # Allow for paths which include index.php
                                                                     # and/or ?q=
@@ -153,7 +152,7 @@ function _pathologic_replace($matches, $absolute) {
     )
   );
 
-  // $matches[1] will be "src" or "href"
+  // $matches[1] will be the attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}\"";
 }
 
