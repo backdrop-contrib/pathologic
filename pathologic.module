@@ -87,7 +87,8 @@ function _pathologic($text, $filter) {
       'pattern' => '
         ~(href|src|action|longdesc|HREF|SRC|ACTION|LONGDESC)=" # HTML attributes
                                                                  # to search for
-        (internal:|' . implode('|', $paths) . ')?  # Path prefixes to search for
+        (internal:|files:|' . implode('|', $paths) . ')?      # Path prefixes to
+                                                                     #search for
         (
           /(\#.*)?|              # A / path with a possible anchor fragment, or…
           (?!(\#|/|mailto:|[a-z]+:/))                 # Exclude likely protocols
@@ -111,6 +112,10 @@ function _pathologic($text, $filter) {
  * Replace the attributes. preg_replace_callback() callback.
  */
 function _pathologic_replace($matches, $absolute) {
+  // First, "files:" support. This is fairly easy.
+  if ($matches[2] === 'files:') {
+    return $matches[1] . '="' . file_create_url(urldecode($matches[3])) . '"';
+  }
   // Build the full URL, then take it apart
   $parts = parse_url('http://example.com/' . urldecode($matches[3]));
   if ($parts['path'] === '/' || $parts['path'] === '//') {
