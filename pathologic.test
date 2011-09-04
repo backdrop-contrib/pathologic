@@ -125,5 +125,10 @@ class PathologicTestCase extends DrupalWebTestCase {
       '<a href="' . url('foo', array('absolute' => TRUE)) . '"><img src="' . url('bar.jpeg', array('absolute' => TRUE)) . '" /></a>',
       t('"Also considered local" paths')
     );
+    $this->assertEqual(
+      _pathologic('<a href="webcal:foo">bar</a>', $filter),
+      '<a href="webcal:foo">bar</a>',
+      t('URLs with likely protocols are ignored')
+    );
   }
 }
