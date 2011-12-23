@@ -96,8 +96,10 @@ function _pathologic($text, $filter) {
           (?!(?:\#|/|(?:' . $proto_prefixes . '):/))  # Exclude likely protocols
           (?:(?:index\.php)?(?:\?q=)?) # Allow for paths which include index.php
                                                                     # and/or ?q=
-          ([^"]*)                                       # Finally, get the path.
-        )"~x',
+          (?!/")([^"]*)                                 # Finally, get the path.
+        )
+        (?<!"/)            # But bail out if the path we just found was just "/"
+        "~x',
       // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
       // compatible way. We're using it here so we can pass the value of
       // $filter->settings['absolute'] to the replacement function. We could
