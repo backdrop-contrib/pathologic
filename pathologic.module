@@ -16,7 +16,7 @@ function pathologic_filter_info() {
   return array(
     'pathologic' => array(
       'title' => t('Correct URLs with Pathologic'),
-      'process callback' => '_pathologic',
+      'process callback' => '_pathologic_filter',
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
         'local_paths' => '',
@@ -57,11 +57,17 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
 /**
  * Pathologic filter callback.
  */
-function _pathologic($text, $filter) {
-  $statics = &drupal_static(__FUNCTION__);
-  if (!isset($statics)) {
-    $statics = array();
+function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $settings = &drupal_static(__FUNCTION__, array());
+  if (!isset($settings[$filter->format])) {
+    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
+    $settings[$filter->format] = $filter->settings;
   }
+  $settings['langcode'] = $langcode;
+  $settings['current_settings'] = &$settings[$filter->format];
+  return preg_replace_callback('~(href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
+/*
+  
   if (!isset($statics[$filter->format])) {
     // Parse the list of the paths also considered local.
     $paths_text = trim($filter->settings['local_paths']);
@@ -93,10 +99,10 @@ function _pathologic($text, $filter) {
                                                                      #search for
         (?:
           /(?:\#.*)?|            # A / path with a possible anchor fragment, or…
-          (?!(?:\#|/|(?:' . $proto_prefixes . '):/))  # Exclude likely protocols
+          (?!(?:\#|/|(?:' . $proto_prefixes . '):/))| # Exclude likely protocols
           (?:(?:index\.php)?(?:\?q=)?) # Allow for paths which include index.php
                                                                     # and/or ?q=
-          (?!/")([^"]*)                                 # Finally, get the path.
+          ([^"]*)                                       # Finally, get the path.
         )
         (?<!"/)            # But bail out if the path we just found was just "/"
         "~x',
@@ -109,12 +115,106 @@ function _pathologic($text, $filter) {
     );
   }
   return preg_replace_callback($statics[$filter->format]['pattern'], $statics[$filter->format]['callback'], $text);
+*/
 }
 
 /**
  * Replace the attributes. preg_replace_callback() callback.
  */
-function _pathologic_replace($matches, $absolute) {
+function _pathologic_replace($matches) {
+  global $base_path;
+  // Get the settings for the filter. There's basically three ways to do this:
+  // abuse eval() and friends; abuse globals; or abuse drupal_static(). The
+  // latter is the least offensive, I think.
+  $settings = drupal_static('_pathologic_filter');
+  // Now parse the URL
+  $parts = parse_url($matches[2]);
+  // Do some early tests to see if we should just give up now.
+  if (
+    // If parse_url() failed, give up by "replacing" the original with the same.
+    $parts === FALSE ||
+    // If there's a scheme part and it doesn't look useful, bail out.
+    // "internal" is for Path Filter compatibility.
+    (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal'))) ||
+    // Also bail out if this doesn't look like a "local" path.
+    (isset($parts['host']) && !in_array($parts['host'], $settings['current_settings']['local_paths_array']))
+  ) {
+    return $matches[0];
+  }
+  // First, "files:" support. This is fairly easy.
+  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
+    // Can we create a file URL for it?
+    $file_url = file_create_url(file_build_uri($parts['path']));
+    if ($file_url) {
+      return $matches[1] . '="' . $file_url;
+    }
+    else {
+      // That didn't work. Bail out.
+      return $matches[0];
+    }
+  }
+  // Does the path have the base_path in it? This will be the case if the Drupal
+  // root is at http://example.com/drupal/ and the URL looks like
+  // http://example.com/drupal/foo or /drupal/foo
+  if (isset($parts['path'])) {
+    if (strpos($parts['path'], $base_path) === 0) {
+      $parts['trimmed_path'] = drupal_substr($parts['path'], drupal_strlen($base_path));
+    }
+    else {
+      $parts['trimmed_path'] = $parts['path'];
+    }
+    // Okay, they didn't use files:, but does it appear that the path is still
+    // to a real file on the disk? If so, we don't want to adjust for language.
+    // Also, skip all other tweaks.
+    if (file_exists(realpath($parts['trimmed_path']))) {
+      $settings['langcode'] = 'und';
+    }
+  }
+  // Examine the query part of the URL. Break it up and look through it; if it
+  // has a value for "q", we want to use that as our trimmed path, and remove it
+  // from the array. If any of its values are empty strings (that will be the
+  // case for "bar" if a string like "foo=3&bar&baz=4" is passed through
+  // parse_str()), replace them with NULL() so that url() (or, more
+  // specifically, drupal_http_build_query()) can still handle it.
+  if (isset($parts['query'])) {
+    parse_str($parts['query'], $parts['qparts']);
+    foreach($parts['qparts'] as $key => $value) {
+      if ($value === '') {
+        $parts['qparts'][$key] = NULL;
+      }
+      elseif ($key === 'q') {
+        $parts['trimmed_path'] = $value;
+        unset($parts['qparts']['q']);
+      }
+    }
+  }
+  else {
+    $parts['qparts'] = NULL;
+  }
+  // If we don't have a trimmed path yet, bail out.
+  if (!isset($parts['trimmed_path'])) {
+    return $matches[0];
+  }
+  // Okay, format the URL.
+  $langs = language_list();
+  $url = url(
+    $parts['trimmed_path'],
+    array(
+      'query' => $parts['qparts'],
+      'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
+      'absolute' => $settings['current_settings']['absolute'],
+      'language' => isset($langs[$settings['langcode']]) ? $langs[$settings['langcode']] : NULL,
+    )
+  );
+/*
+  if (isset($parts['query'])) {
+    // parse_str() is a dumb strange function that will introduce variables
+    // into the current scope unless we specifically put its action to legit
+    // use by passing it an "empty" array to fill.
+    parse_str($parts['query'], $parts['qparts']);
+*/
+  
+/*
   // First, "files:" support. This is fairly easy.
   if ($matches[2] === 'files:') {
     return $matches[1] . '="' . file_create_url(file_build_uri(urldecode($matches[3]))) . '"';
@@ -159,9 +259,10 @@ function _pathologic_replace($matches, $absolute) {
       'absolute' => $absolute,
     )
   );
+*/
 
   // $matches[1] will be the attribute; src, href, etc.
-  return "{$matches[1]}=\"{$url}\"";
+  return "{$matches[1]}=\"{$url}";
 }
 
 /**
