@@ -19,7 +19,7 @@ function pathologic_filter_info() {
       'process callback' => '_pathologic_filter',
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
-        'local_paths' => '',
+        'host_names' => '',
         'absolute' => TRUE,
       ),
       'weight' => 65535,
@@ -37,11 +37,11 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
       '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
       '#weight' => -10,
     ),
-    'local_paths' => array(
+    'host_names' => array(
       '#type' => 'textarea',
-      '#title' =>  t('Also considered local'),
-      '#default_value' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
-        '#description' => t('Enter the beginning of paths which should also be considered local for this server. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature. If the site is using a WYSIWYG content editor such as CKEditor or TinyMCE, you will probably need to enter a single slash (<code>/</code>) in this field.', array('!docs' => 'http://drupal.org/node/257026')),
+      '#title' =>  t('All accessible host names'),
+      '#default_value' => isset($filter->settings['host_names']) ? $filter->settings['host_names'] : $defaults['host_names'],
+        '#description' => t('If this site is accessible from more than one host/domain name, please enter those names here, separated by line breaks. For example, if a testing version if this site is accessible at <code>http://test.example.com/</code> and the live version is available at <code>http://example.com/</code>, enter both <code>test.example.com</code> and <code>example.com</code> here. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
       '#weight' => 10,
     ),
     'absolute' => array(
@@ -60,7 +60,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
-    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
+    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['host_names']));
     $settings[$filter->format] = $filter->settings;
   }
   $settings['langcode'] = $langcode;
@@ -70,7 +70,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   
   if (!isset($statics[$filter->format])) {
     // Parse the list of the paths also considered local.
-    $paths_text = trim($filter->settings['local_paths']);
+    $paths_text = trim($filter->settings['host_names']);
     if ($paths_text === '') {
       $paths = array();
     }

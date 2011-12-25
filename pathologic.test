@@ -107,7 +107,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     // Test internal: and also considered local
     $filter->settings = array(
       'absolute' => TRUE,
-      'local_paths' => "example.com\nexample.org",
+      'host_names' => "example.com\nexample.org",
     );
     $filter->format++;
     $this->assertEqual(
