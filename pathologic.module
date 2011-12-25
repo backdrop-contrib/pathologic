@@ -66,56 +66,6 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   $settings['langcode'] = $langcode;
   $settings['current_settings'] = &$settings[$filter->format];
   return preg_replace_callback('~(href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
-/*
-  
-  if (!isset($statics[$filter->format])) {
-    // Parse the list of the paths also considered local.
-    $paths_text = trim($filter->settings['host_names']);
-    if ($paths_text === '') {
-      $paths = array();
-    }
-    else {
-      $paths = array_map('trim', explode("\n", $paths_text));
-    }
-    // Add "this" path
-    $paths[] = url('<front>', array('absolute' => TRUE));
-    // Remove duplicates, since it's possible "this" path was already in the list;
-    // also do escaping
-    $paths = array_map('_pathologic_escape', array_unique($paths));
-    // Create a list of protocol prefixes so we can ignore them
-    $proto_prefixes = implode('|', variable_get('filter_allowed_protocols', array('ftp', 'http', 'https', 'irc', 'mailto', 'news', 'nntp', 'rtsp', 'sftp', 'ssh', 'tel', 'telnet', 'webcal')));
-
-    // We need to account for the fact that
-    // http://example.com/foo
-    // http://example.com/?q=foo
-    // http://example.com/index.php?q=foo
-    // …are all valid.
-
-    $statics[$filter->format] = array(
-      'pattern' => '
-        ~(href|src|action|longdesc|HREF|SRC|ACTION|LONGDESC)=" # HTML attributes
-                                                                 # to search for
-        (internal:|files:|' . implode('|', $paths) . ')?      # Path prefixes to
-                                                                     #search for
-        (?:
-          /(?:\#.*)?|            # A / path with a possible anchor fragment, or…
-          (?!(?:\#|/|(?:' . $proto_prefixes . '):/))| # Exclude likely protocols
-          (?:(?:index\.php)?(?:\?q=)?) # Allow for paths which include index.php
-                                                                    # and/or ?q=
-          ([^"]*)                                       # Finally, get the path.
-        )
-        (?<!"/)            # But bail out if the path we just found was just "/"
-        "~x',
-      // create_funtion() lets us do lambdas in a really crappy but pre-PHP 5.3-
-      // compatible way. We're using it here so we can pass the value of
-      // $filter->settings['absolute'] to the replacement function. We could
-      // just put the whole replacement function here, but that would just be
-      // silly.
-      'callback' => create_function('$matches', 'return _pathologic_replace($matches, ' . ($filter->settings['absolute'] ? 'TRUE' : 'FALSE') . ');'),
-    );
-  }
-  return preg_replace_callback($statics[$filter->format]['pattern'], $statics[$filter->format]['callback'], $text);
-*/
 }
 
 /**
@@ -213,71 +163,6 @@ function _pathologic_replace($matches) {
       'language' => isset($langs[$settings['langcode']]) ? $langs[$settings['langcode']] : NULL,
     )
   );
-/*
-  if (isset($parts['query'])) {
-    // parse_str() is a dumb strange function that will introduce variables
-    // into the current scope unless we specifically put its action to legit
-    // use by passing it an "empty" array to fill.
-    parse_str($parts['query'], $parts['qparts']);
-*/
-  
-/*
-  // First, "files:" support. This is fairly easy.
-  if ($matches[2] === 'files:') {
-    return $matches[1] . '="' . file_create_url(file_build_uri(urldecode($matches[3]))) . '"';
-  }
-  // Build the full URL, then take it apart
-  $parts = parse_url('http://example.com/' . urldecode($matches[3]));
-  if ($parts['path'] === '/' || $parts['path'] === '//') {
-    // '//' will be the case if the original path was just a slash
-    $parts['path'] = '<front>';
-  }
-  else {
-    // Trim initial slash off path.
-    $parts['path'] = drupal_substr($parts['path'], 1);
-  }
-
-  // Need to parse the query parts
-  if (isset($parts['query'])) {
-    parse_str($parts['query'], $qparts);
-    if (isset($qparts['q'])) {
-      $parts['path'] = $qparts['q'];
-      unset($qparts['q']);
-    }
-    foreach ($qparts as $key => $qpart) {
-      if ($qpart === '') {
-        // In a query string, this is a key for which there isn't a value; for
-        // example, the "baz" in "foo=bar&baz&qux=quux". In order for url() (or,
-        // more specifically, drupal_http_build_query()) to handle this
-        // correctly, it should have a value of NULL.
-        $qparts[$key] = NULL;
-      }
-    }
-  }
-  else {
-    $qparts = NULL;
-  }
-
-  $url = url(
-    $parts['path'],
-    array(
-      'query' => $qparts,
-      'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
-      'absolute' => $absolute,
-    )
-  );
-*/
-
-  // $matches[1] will be the attribute; src, href, etc.
+  // $matches[1] will be the tag attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}";
-}
-
-/**
- * Escape paths to convert. preg_replace_callback() callback.
- */
-function _pathologic_escape($path) {
-  // Quote special characters, but "convert" asterisks.
-  // Apparently the special characters in the preg_replace below need to be
-  // double-escaped…?
-  return preg_replace(array('/(?<!\\\)\\\\\*/', '/^https?/'), array('[^/]*', 'https?'), preg_quote($path, '~'));
 }
