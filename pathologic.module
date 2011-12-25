@@ -163,10 +163,17 @@ function _pathologic_replace($matches) {
     else {
       $parts['trimmed_path'] = $parts['path'];
     }
+    if ($parts['trimmed_path'] === '') {
+      // Okay, if we just ended up with an empty string, then what happened is
+      // they linked to the front page of their Drupal installation using non-
+      // clean URLs (supposedly). So we'll set it to '<front>' so that we can
+      // properly link to it later.
+      $parts['trimmed_path'] = '<front>';
+    }
     // Okay, they didn't use files:, but does it appear that the path is still
     // to a real file on the disk? If so, we don't want to adjust for language.
     // Also, skip all other tweaks.
-    if (file_exists(realpath($parts['trimmed_path']))) {
+    elseif (file_exists(realpath($parts['trimmed_path']))) {
       $settings['langcode'] = 'und';
     }
   }

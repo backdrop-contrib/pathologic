@@ -30,7 +30,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     $filter->callback = '_pathologic';
     $filter->settings = array(
       'absolute' => TRUE,
-      'local_paths' => '',
+      'host_names' => '',
     );
     $filter->format = 0;
 
@@ -62,6 +62,10 @@ class PathologicTestCase extends DrupalWebTestCase {
           'query' => array('baz' => 'qux'),
           'fragment' => 'quux',
         ),
+      ),
+      '/' => array(
+        'path' => '<front>',
+        'opts' => array(),
       ),
     );
 
@@ -101,6 +105,11 @@ class PathologicTestCase extends DrupalWebTestCase {
           _pathologic_filter('<a href="foo/bar?baz=qux#quux">', $filter, NULL, 'und', NULL, NULL),
           '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">',
           t('Path with query string and fragment. Clean URLs: !clean; absolute: !abs.', $t10ns)
+        );
+        $this->assertEqual(
+          _pathologic_filter('<a href="/"></a>', $filter, NULL, 'und', NULL, NULL),
+          '<a href="' . $paths['/'] . '"></a>',
+          t('Path with just slash. Clean URLs: !clean; absolute: !abs', $t10ns)
         );
       }
     }
