@@ -19,7 +19,7 @@ function pathologic_filter_info() {
       'process callback' => '_pathologic_filter',
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
-        'host_names' => '',
+        'local_paths' => '',
         'absolute' => TRUE,
       ),
       'weight' => 65535,
@@ -37,18 +37,18 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
       '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
       '#weight' => -10,
     ),
-    'host_names' => array(
-      '#type' => 'textarea',
-      '#title' =>  t('All accessible host names'),
-      '#default_value' => isset($filter->settings['host_names']) ? $filter->settings['host_names'] : $defaults['host_names'],
-        '#description' => t('If this site is accessible from more than one host/domain name, please enter those names here, separated by line breaks. For example, if a testing version if this site is accessible at <code>http://test.example.com/</code> and the live version is available at <code>http://example.com/</code>, enter both <code>test.example.com</code> and <code>example.com</code> here. Please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this feature.', array('!docs' => 'http://drupal.org/node/257026')),
-      '#weight' => 10,
-    ),
     'absolute' => array(
       '#type' => 'checkbox',
       '#title' => t('Output full absolute URLs'),
       '#default_value' => isset($filter->settings['absolute']) ? $filter->settings['absolute'] : $defaults['absolute'],
       '#description' => t('If checked, Pathologic will output full absolute URLs, with a protocol and server fragment (such as <code>http://example.com/foo/bar</code>); this is useful if you want images and links to not break for those reading the content in a feed reader or through some other form of aggregation. However, in cases where the site is being served via both HTTP and HTTPS, it may be necessary to uncheck this box so that protocol and server fragments are omitted in the paths Pathologic creates (such as <code>/foo/bar</code>) to avoid issues where the browser complains about pages containing both secure and insecure content.'),
+      '#weight' => 10,
+    ),
+    'local_paths' => array(
+      '#type' => 'textarea',
+      '#title' =>  t('All URLs'),
+      '#default_value' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
+        '#description' => t('If this site is or was available at more than one URL, enter the full absolute URLs here, separated by line breaks. For example, if this site is live at <code>http://example.com/</code> but has a staging version at <code>http://dev.example.org/staging/</code>, you would enter both those URLs here. If confused, please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this option and what it affects.', array('!docs' => 'http://drupal.org/node/257026')),
       '#weight' => 20,
     ),
   );
@@ -60,7 +60,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
-    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['host_names']));
+    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
     $settings[$filter->format] = $filter->settings;
   }
   $settings['langcode'] = $langcode;
