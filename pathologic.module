@@ -7,6 +7,10 @@
  * This input filter attempts to make sure that link and image paths will
  * always be correct, even when domain names change, content is moved from one
  * server to another, the Clean URLs feature is toggled, etc.
+ *
+ * @TODO: Removing "old" base paths currently does not work. For example, if
+ * "/banana" is in the "All base paths" field and Pathologic encounters a path
+ * of "/banana/foo", it will not strip off the "banana."
  */
 
 /**
@@ -65,33 +69,47 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   $base_url_parts = parse_url($base_url);
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
-    $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
-    $filter->settings['local_paths_exploded'] = array(
-    );
-    foreach ($filter->settings['local_paths_array'] as $local) {
-      $parts = parse_url($local);
-      // To avoid duplication, check…
-      if (
-        (
-          // If this path has a host, and…
-          isset($parts['host']) &&
-          // The host is different from the current host…
-          $parts['host'] !== $base_url_parts['host']
-        ) ||
-        // Or…
-        (
-          // The path doesn't have a host…
-          !isset($parts['host'])
-        ) &&
-        // And the path part is not the same as the current installation…
-        $parts['path'] !== $base_url_parts['path']
-      ) {
-      // Add it to the list.
-        $filter->settings['local_paths_exploded'][] = $parts;
+    $filter->settings['local_paths_exploded'] = array();
+    if ($filter->settings['local_paths'] !== '') {
+      $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
+      foreach ($filter->settings['local_paths_array'] as $local) {
+        $parts = parse_url($local);
+        // Okay, what the hellish if statement is doing below is checking to
+        // make sure we aren't about to add a path to our array of exploded
+        // local paths which matches the current "local" path. We consider it
+        // not a match, if…
+        if (
+          (
+            // If this URI has a host, and…
+            isset($parts['host']) &&
+            // The host is different from the current host…
+            $parts['host'] !== $base_url_parts['host']
+          ) ||
+          // Or…
+          (
+            // The URI doesn't have a host…
+            !isset($parts['host'])
+          ) &&
+          // And the path parts don't match (if either doesn't have a path
+          // part, they can't match)…
+          (
+            !isset($parts['path']) ||
+            !isset($base_url_parts['path']) ||
+            $parts['path'] !== $base_url_parts['path']
+          )
+        ) {
+        // Add it to the list.
+          $filter->settings['local_paths_exploded'][] = $parts;
+        }
       }
       // Now add local paths.
-      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+      if (isset($base_url_parts['path'])) {
+        $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
+        $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+      }
+      else {
+        $filter->settings['local_paths_exploded'][] = array('host' => $base_url_parts['host']);
+      }
     }
     $settings[$filter->format] = $filter->settings;
   }
@@ -117,12 +135,24 @@ function _pathologic_replace($matches) {
     $parts === FALSE ||
     // If there's a scheme part and it doesn't look useful, bail out.
     // "internal" is for Path Filter compatibility.
-    (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal'))) ||
-    // Also bail out if this doesn't look like a "local" path.
-    (isset($parts['host']) && !in_array($parts['host'], $settings['current_settings']['local_paths_array']))
+    (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal')))
   ) {
     // Give up by "replacing" the original with the same.
     return $matches[0];
+  }
+  // Let's also bail out of this doesn't look like a local path.
+  if (isset($parts['host'])) {
+    $found = FALSE;
+    // Cycle through local paths and find one with a host that matches
+    foreach ($settings['current_settings']['local_paths_exploded'] as $exploded) {
+      if (isset($exploded['host']) && $exploded['host'] === $parts['host']) {
+        $found = TRUE;
+        break;
+      }
+    }
+    if (!$found) {
+      return $matches[0];
+    }
   }
   // First, "files:" support. This is fairly easy.
   if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
