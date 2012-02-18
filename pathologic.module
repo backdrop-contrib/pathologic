@@ -109,7 +109,9 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
       $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
     }
     else {
+      global $base_path;
       $filter->settings['local_paths_exploded'][] = array('host' => $base_url_parts['host']);
+      $filter->settings['local_paths_exploded'][] = array('path' => $base_path);
     }
     $settings[$filter->format] = $filter->settings;
   }
