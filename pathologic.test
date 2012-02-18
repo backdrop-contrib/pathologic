@@ -10,6 +10,8 @@
  *
  * We extend FilterUnitTestCase because it has some nice methods that we also
  * want to bea ble to use.
+ *
+ * Note to self: The method to pass bits of text through are fail() or pass().
  */
 class PathologicTestCase extends DrupalWebTestCase {
   public static function getInfo() {
@@ -116,7 +118,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     // Test internal: and also considered local
     $filter->settings = array(
       'absolute' => TRUE,
-      'local_paths' => "http://example.com/qux\nexample.org\/bananas",
+      'local_paths' => "http://example.com/qux\nhttp://example.org\n/bananas",
     );
     $filter->format++;
     $this->assertEqual(

@@ -141,18 +141,47 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
   // Let's also bail out of this doesn't look like a local path.
-  if (isset($parts['host'])) {
-    $found = FALSE;
-    // Cycle through local paths and find one with a host that matches
-    foreach ($settings['current_settings']['local_paths_exploded'] as $exploded) {
-      if (isset($exploded['host']) && $exploded['host'] === $parts['host']) {
-        $found = TRUE;
-        break;
-      }
+  $found = FALSE;
+  // Cycle through local paths and find one with a host and a path that matches;
+  // or just a host if that's all we have; or just a starting path if that's
+  // what we have.
+  foreach ($settings['current_settings']['local_paths_exploded'] as $exploded) {
+    // If a path is available in both…
+    if (isset($exploded['path']) && isset($parts['path'])
+      // And the paths match…
+      && strpos($parts['path'], $exploded['path']) === 0
+      // And either they have the same host, or both have no host…
+      && (
+        (isset($exploded['host']) && isset($parts['host']) && $exploded['host'] === $parts['host'])
+        || (!isset($exploded['host']) && !isset($parts['host']))
+      )
+    ) {
+      // Remove the shared path from the path. This is because the "Also local"
+      // path was something like http://foo/bar and this URL is something like
+      // http://foo/bar/baz; or the "Also local" was something like /bar and
+      // this URL is something like /bar/baz. And we only care about the /baz
+      // part.
+      $parts['path'] = substr($parts['path'], strlen($exploded['path']));
+      $found = TRUE;
+      // Break out of the foreach loop
+      break;
     }
-    if (!$found) {
-      return $matches[0];
+    // Okay, we didn't match on path alone, or host and path together. Can we
+    // match on just host? Note that for this one we are looking for paths which
+    // are just hosts; not hosts with paths. On the other hand, if 
+    elseif ((isset($parts['host']) && !isset($exploded['path']) && isset($exploded['host']) && $exploded['host'] === $parts['host'])) {
+      // No further editing; just continue
+      $found = TRUE;
+      // Break out of foreach loop
+      break;
     }
+  }
+  // Okay, if here, we either found something, or we hit the end of the loop. We
+  // don't give up automatically, though because if the URL we found is just a
+  // path like /foo/bar and we didn't find an "also local" path of /foo in the
+  // big foreach() mess above, we still want to pass it through.
+  if (!$found && !(isset($parts['path']) && !isset($parts['host']))) {
+    return $matches[0];
   }
   // First, "files:" support. This is fairly easy.
   if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
