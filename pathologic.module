@@ -102,14 +102,14 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
           $filter->settings['local_paths_exploded'][] = $parts;
         }
       }
-      // Now add local paths.
-      if (isset($base_url_parts['path'])) {
-        $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-        $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
-      }
-      else {
-        $filter->settings['local_paths_exploded'][] = array('host' => $base_url_parts['host']);
-      }
+    }
+    // Now add local paths based on "this" server URL.
+    if (isset($base_url_parts['path'])) {
+      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
+      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+    }
+    else {
+      $filter->settings['local_paths_exploded'][] = array('host' => $base_url_parts['host']);
     }
     $settings[$filter->format] = $filter->settings;
   }
