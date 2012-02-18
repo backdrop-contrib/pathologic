@@ -140,6 +140,7 @@ function _pathologic_replace($matches) {
     // Give up by "replacing" the original with the same.
     return $matches[0];
   }
+  
   // Let's also bail out of this doesn't look like a local path.
   $found = FALSE;
   // Cycle through local paths and find one with a host and a path that matches;
@@ -161,14 +162,14 @@ function _pathologic_replace($matches) {
       // http://foo/bar/baz; or the "Also local" was something like /bar and
       // this URL is something like /bar/baz. And we only care about the /baz
       // part.
-      $parts['path'] = substr($parts['path'], strlen($exploded['path']));
+      $parts['path'] = drupal_substr($parts['path'], drupal_strlen($exploded['path']));
       $found = TRUE;
       // Break out of the foreach loop
       break;
     }
     // Okay, we didn't match on path alone, or host and path together. Can we
     // match on just host? Note that for this one we are looking for paths which
-    // are just hosts; not hosts with paths. On the other hand, if 
+    // are just hosts; not hosts with paths.
     elseif ((isset($parts['host']) && !isset($exploded['path']) && isset($exploded['host']) && $exploded['host'] === $parts['host'])) {
       // No further editing; just continue
       $found = TRUE;
@@ -176,13 +177,15 @@ function _pathologic_replace($matches) {
       break;
     }
   }
+
   // Okay, if here, we either found something, or we hit the end of the loop. We
-  // don't give up automatically, though because if the URL we found is just a
+  // don't give up automatically, though, because if the URL we found is just a
   // path like /foo/bar and we didn't find an "also local" path of /foo in the
   // big foreach() mess above, we still want to pass it through.
   if (!$found && !(isset($parts['path']) && !isset($parts['host']))) {
     return $matches[0];
   }
+
   // First, "files:" support. This is fairly easy.
   if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
     // Can we create a file URL for it?
@@ -195,44 +198,27 @@ function _pathologic_replace($matches) {
       return $matches[0];
     }
   }
-  // Does the path have the base_path in it? This will be the case if the Drupal
-  // root is at http://example.com/drupal/ and the URL looks like
-  // http://example.com/drupal/foo or /drupal/foo
-  if (isset($parts['path'])) {
-    if (strpos($parts['path'], $base_path) === 0) {
-      $parts['trimmed_path'] = drupal_substr($parts['path'], drupal_strlen($base_path));
-    }
-    else {
-      $parts['trimmed_path'] = $parts['path'];
-    }
-    if ($parts['trimmed_path'] === '') {
-      // Okay, if we just ended up with an empty string, then what happened is
-      // they linked to the front page of their Drupal installation using non-
-      // clean URLs (supposedly). So we'll set it to '<front>' so that we can
-      // properly link to it later.
-      $parts['trimmed_path'] = '<front>';
-    }
+  elseif (file_exists(realpath($parts['path']))) {
     // Okay, they didn't use files:, but does it appear that the path is still
     // to a real file on the disk? If so, we don't want to adjust for language.
     // Also, skip all other tweaks.
-    elseif (file_exists(realpath($parts['trimmed_path']))) {
-      $settings['langcode'] = 'und';
-    }
+    $settings['langcode'] = LANGUAGE_NONE;
   }
+
   // Examine the query part of the URL. Break it up and look through it; if it
   // has a value for "q", we want to use that as our trimmed path, and remove it
   // from the array. If any of its values are empty strings (that will be the
   // case for "bar" if a string like "foo=3&bar&baz=4" is passed through
-  // parse_str()), replace them with NULL() so that url() (or, more
+  // parse_str()), replace them with NULL so that url() (or, more
   // specifically, drupal_http_build_query()) can still handle it.
   if (isset($parts['query'])) {
     parse_str($parts['query'], $parts['qparts']);
-    foreach($parts['qparts'] as $key => $value) {
+    foreach ($parts['qparts'] as $key => $value) {
       if ($value === '') {
         $parts['qparts'][$key] = NULL;
       }
       elseif ($key === 'q') {
-        $parts['trimmed_path'] = $value;
+        $parts['path'] = $value;
         unset($parts['qparts']['q']);
       }
     }
@@ -240,14 +226,19 @@ function _pathologic_replace($matches) {
   else {
     $parts['qparts'] = NULL;
   }
-  // If we don't have a trimmed path yet, bail out.
-  if (!isset($parts['trimmed_path'])) {
+
+  // If we don't have a path yet, bail out.
+  if (!isset($parts['path'])) {
     return $matches[0];
   }
   // Okay, format the URL.
+  // If there's still a slash lingering at the start of the path, chop it off.
+  if (strpos($parts['path'], '/') === 0) {
+    $parts['path'] = substr($parts['path'], 1);
+  }
   $langs = language_list();
   $url = url(
-    $parts['trimmed_path'],
+    $parts['path'] === '' ? '<front>' : $parts['path'],
     array(
       'query' => $parts['qparts'],
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
