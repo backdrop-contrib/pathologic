@@ -66,7 +66,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
  */
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
   global $base_url;
-  $base_url_parts = parse_url($base_url);
+  $base_url_parts = parse_url($base_url . '/');
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
     $filter->settings['local_paths_exploded'] = array();
@@ -104,15 +104,9 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
       }
     }
     // Now add local paths based on "this" server URL.
-    if (isset($base_url_parts['path'])) {
-      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-      $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
-    }
-    else {
-      global $base_path;
-      $filter->settings['local_paths_exploded'][] = array('host' => $base_url_parts['host']);
-      $filter->settings['local_paths_exploded'][] = array('path' => $base_path);
-    }
+    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
+    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+
     $settings[$filter->format] = $filter->settings;
   }
   $settings['langcode'] = $langcode;
@@ -124,7 +118,6 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
  * Replace the attributes. preg_replace_callback() callback.
  */
 function _pathologic_replace($matches) {
-  global $base_path;
   // Get the settings for the filter. There's basically three ways to do this:
   // abuse eval() and friends; abuse globals; or abuse drupal_static(). The
   // latter is the least offensive, I think.
