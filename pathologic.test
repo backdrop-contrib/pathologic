@@ -115,6 +115,20 @@ class PathologicTestCase extends DrupalWebTestCase {
         );
       }
     }
+
+    global $base_path;
+    $this->assertEqual(
+      _pathologic_filter('<a href="' . $base_path . 'foo">bar</a>', $filter, NULL, 'und', NULL, NULL),
+      '<a href="' . url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      t('Paths beginning with $base_path (like WYSIWYG editors like to make)')
+    );
+    global $base_url;
+    $this->assertEqual(
+      _pathologic_filter('<a href="' . $base_url . '/foo">bar</a>', $filter, NULL, 'und', NULL, NULL),
+      '<a href="' . url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      t('Paths beginning with $base_url')
+    );
+
     // Test internal: and also considered local
     $filter->settings = array(
       'absolute' => TRUE,
@@ -140,12 +154,6 @@ class PathologicTestCase extends DrupalWebTestCase {
       _pathologic_filter('<a href="webcal:foo">bar</a>', $filter, NULL, 'und', NULL, NULL),
       '<a href="webcal:foo">bar</a>',
       t('URLs with likely protocols are ignored')
-    );
-    global $base_path;
-    $this->assertEqual(
-      _pathologic_filter('<a href="' . $base_path . 'foo">bar</a>', $filter, NULL, 'und', NULL, NULL),
-      '<a href="' . url('foo', array('absolute' => TRUE)) .'">bar</a>',
-      t('Paths beginning with $base_path (like WYSIWYG editors like to make)')
     );
   }
 }
