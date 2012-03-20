@@ -9,7 +9,7 @@
  * Tests that Pathologic ain't broke.
  *
  * We extend FilterUnitTestCase because it has some nice methods that we also
- * want to bea ble to use.
+ * want to be able to use.
  *
  * Note to self: The method to pass bits of text through are fail() or pass().
  */
