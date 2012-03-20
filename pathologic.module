@@ -111,6 +111,15 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   }
   $settings['langcode'] = $langcode;
   $settings['current_settings'] = &$settings[$filter->format];
+
+  // Prepare language objects to pass to url()
+  if (!isset($settings['language_list'])) {
+    $settings['language_list'] = language_list();
+    // Add a fake "none" language for when we don't actually want to do
+    // language-based path tweaking
+    $settings['language_list'][LANGUAGE_NONE] = (object) array('language' => LANGUAGE_NONE, 'prefix' => '');
+  }
+
   return preg_replace_callback('~(href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
 }
 
@@ -135,7 +144,7 @@ function _pathologic_replace($matches) {
     // Give up by "replacing" the original with the same.
     return $matches[0];
   }
-  
+
   // Let's also bail out of this doesn't look like a local path.
   $found = FALSE;
   // Cycle through local paths and find one with a host and a path that matches;
@@ -226,19 +235,22 @@ function _pathologic_replace($matches) {
   if (!isset($parts['path'])) {
     return $matches[0];
   }
+
   // Okay, format the URL.
   // If there's still a slash lingering at the start of the path, chop it off.
+  // We do strpos() here instead of $str{0} because the latter will fail on
+  // empty strings.
   if (strpos($parts['path'], '/') === 0) {
     $parts['path'] = substr($parts['path'], 1);
   }
-  $langs = language_list();
+
   $url = url(
     $parts['path'] === '' ? '<front>' : $parts['path'],
     array(
       'query' => $parts['qparts'],
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
       'absolute' => $settings['current_settings']['absolute'],
-      'language' => isset($langs[$settings['langcode']]) ? $langs[$settings['langcode']] : NULL,
+      'language' => isset($settings['language_list'][$settings['langcode']]) ? $settings['language_list'][$settings['langcode']] : $settings['language_list'][LANGUAGE_NONE],
     )
   );
   // $matches[1] will be the tag attribute; src, href, etc.
