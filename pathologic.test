@@ -129,6 +129,13 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Paths beginning with $base_url')
     );
 
+    // [1617944]
+    $this->assertEqual(
+      _pathologic_filter('<a href="//example.com/foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+      '<a href="//example.com/foo">bar</a>',
+      t('Schemeless URLs (//example.com/foo) ignored')
+    );
+
     // Test internal: and also considered local
     $filter->settings = array(
       'absolute' => TRUE,
