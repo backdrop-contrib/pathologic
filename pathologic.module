@@ -131,6 +131,13 @@ function _pathologic_replace($matches) {
   // abuse eval() and friends; abuse globals; or abuse drupal_static(). The
   // latter is the least offensive, I think.
   $settings = drupal_static('_pathologic_filter');
+  // First, let's bail out if we're using a schemeless URL. See [#1617944].
+  // parse_url() can't parse these correctly anyway (the entire URL will be in
+  // the "path" value of the returned array), so we will check before we even
+  // try.
+  if (strpos($matches[2], '//') === 0) {
+    return $matches[0];
+  }
   // Now parse the URL
   $parts = parse_url($matches[2]);
   // Do some early tests to see if we should just give up now.
