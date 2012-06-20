@@ -26,7 +26,11 @@ function pathologic_filter_info() {
         'local_paths' => '',
         'absolute' => TRUE,
       ),
-      'weight' => 65535,
+      // Set weight to 50 so that it will hopefully appear at the bottom of
+      // filter lists by default. 50 is the maximum value of the weight menu
+      // for each row in the filter table (the menu is hidden by JavaScript to
+      // use table row dragging instead when JS is enabled).
+      'weight' => 50,
     )
   );
 }
