@@ -24,7 +24,7 @@ function pathologic_filter_info() {
       'settings callback' => '_pathologic_settings',
       'default settings' => array(
         'local_paths' => '',
-        'absolute' => TRUE,
+        'protocol_style' => 'full',
       ),
       // Set weight to 50 so that it will hopefully appear at the bottom of
       // filter lists by default. 50 is the maximum value of the weight menu
@@ -45,11 +45,16 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
       '#title' => t('In most cases, Pathologic should be the <em>last</em> filter in the &ldquo;Filter processing order&rdquo; list.'),
       '#weight' => -10,
     ),
-    'absolute' => array(
-      '#type' => 'checkbox',
-      '#title' => t('Output full absolute URLs'),
-      '#default_value' => isset($filter->settings['absolute']) ? $filter->settings['absolute'] : $defaults['absolute'],
-      '#description' => t('If checked, Pathologic will output full absolute URLs, with a protocol and server fragment (such as <code>http://example.com/foo/bar</code>); this is useful if you want images and links to not break for those reading the content in a feed reader or through some other form of aggregation. However, in cases where the site is being served via both HTTP and HTTPS, it may be necessary to uncheck this box so that protocol and server fragments are omitted in the paths Pathologic creates (such as <code>/foo/bar</code>) to avoid issues where the browser complains about pages containing both secure and insecure content.'),
+    'protocol_style' => array(
+      '#type' => 'radios',
+      '#title' => t('Processed URL format'),
+      '#default_value' => isset($filter->settings['protocol_style']) ? $filter->settings['protocol_style'] : 'full',
+      '#options' => array(
+        'full' => t('Full URL (<code>http://example.com/foo/bar</code>)'),
+        'proto-rel' => t('Protocol relative URL (<code>//example.com/foo/bar</code>)'),
+        'path' => t('Path relative to server root (<code>/foo/bar</code>)'),
+      ),
+      '#description' => t('The <em>Full URL</em> option is best for stopping broken images and links in syndicated content (such as in RSS feeds), but will likely lead to problems if your site is accessible by both HTTP and HTTPS. Paths output with the <em>Protocol relative URL</em> option will avoid such problems, but feed readers and other software not using up-to-date standards may be confused by the paths. The <em>Path relative to server root</em> option will avoid problems with sites accessible by both HTTP and HTTPS with no compatibility concerns, but will absolutely not fix broken images and links in syndicated content.'),
       '#weight' => 10,
     ),
     'local_paths' => array(
