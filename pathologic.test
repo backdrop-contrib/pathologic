@@ -27,6 +27,18 @@ class PathologicTestCase extends DrupalWebTestCase {
   }
 
   function testPathologic() {
+    // Start by testing our function to build protocol-relative URLs
+    $this->assertEqual(
+      _pathologic_url_to_protocol_relative('http://example.com/foo/bar'),
+      '//example.com/foo/bar',
+      t('Protocol-relative URL creation with http:// URL')
+    );
+    $this->assertEqual(
+      _pathologic_url_to_protocol_relative('https://example.org/baz'),
+      '//example.org/baz',
+      t('Protocol-relative URL creation with https:// URL')
+    );
+
     // Build a phony filter
     $filter = new stdClass;
     $filter->callback = '_pathologic';
@@ -129,7 +141,7 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Paths beginning with $base_url')
     );
 
-    // [1617944]
+    // [#1617944]
     $this->assertEqual(
       _pathologic_filter('<a href="//example.com/foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
       '<a href="//example.com/foo">bar</a>',

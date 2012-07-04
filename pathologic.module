@@ -272,3 +272,14 @@ function _pathologic_replace($matches) {
   // $matches[1] will be the tag attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}";
 }
+
+/**
+ * Convert a full URL with a protocol to a protocol-relative URL.
+ *
+ * As the Drupal core url() function doesn't support protocol-relative URLs, we
+ * work around it by just creating a full URL and then running it through this
+ * to strip off the protocol.
+ */
+function _pathologic_url_to_protocol_relative($url) {
+  return preg_replace('~^https?://~', '//', $url);
+}
