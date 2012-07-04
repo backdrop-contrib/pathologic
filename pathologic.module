@@ -154,7 +154,7 @@ function _pathologic_replace($matches) {
     // If parse_url() failed, give up.
     $parts === FALSE ||
     // If there's a scheme part and it doesn't look useful, bail out.
-    // "internal" is for Path Filter compatibility.
+    // "files" and "internal" are for Path Filter compatibility.
     (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal')))
   ) {
     // Give up by "replacing" the original with the same.
@@ -265,10 +265,19 @@ function _pathologic_replace($matches) {
     array(
       'query' => $parts['qparts'],
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
-      'absolute' => $settings['current_settings']['absolute'],
+      // Create an absolute URL if protocol_style is 'full' or 'proto-rel', but
+      // not if it's 'path'.
+      'absolute' => $settings['current_settings']['protocol_style'] !== 'path',
       'language' => isset($settings['language_list'][$settings['langcode']]) ? $settings['language_list'][$settings['langcode']] : $settings['language_list'][LANGUAGE_NONE],
     )
   );
+
+  // If we need to create a protocol-relative URL, then convert the absolute
+  // URL we have now.
+  if ($settings['current_settings']['protocol_style'] === 'proto-rel') {
+    $url = _pathologic_url_to_protocol_relative($url);
+  }
+
   // $matches[1] will be the tag attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}";
 }

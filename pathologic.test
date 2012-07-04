@@ -43,7 +43,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     $filter = new stdClass;
     $filter->callback = '_pathologic';
     $filter->settings = array(
-      'absolute' => TRUE,
+      'protocol_style' => 'full',
       'local_paths' => '',
     );
     $filter->format = 0;
@@ -87,43 +87,46 @@ class PathologicTestCase extends DrupalWebTestCase {
     foreach (array(TRUE, FALSE) as $clean_url) {
       variable_set('clean_url', $clean_url);
       // Run tests with absoulte filtering enabled and disabled
-      foreach (array(TRUE, FALSE) as $absolute) {
-        $filter->settings['absolute'] = $absolute;
+      foreach (array('full', 'proto-rel', 'path') as $protocol_style) {
+        $filter->settings['protocol_style'] = $protocol_style;
         $filter->format++;
         $paths = array();
         foreach ($test_paths as $path => $args) {
-          $args['opts']['absolute'] = $absolute;
+          $args['opts']['absolute'] = $protocol_style !== 'path';
           $paths[$path] = url($args['path'], $args['opts']);
+          if ($protocol_style === 'proto-rel') {
+            $paths[$path] = _pathologic_url_to_protocol_relative($paths[$path]);
+          }
         }
         $t10ns = array(
           '!clean' => $clean_url ? t('Yes') : t('No'),
-          '!abs' => $absolute ? t('Yes') : t('No'),
+          '!ps' => $protocol_style,
         );
 
         $this->assertEqual(
           _pathologic_filter('<a href="foo"><img src="foo/bar" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>',
-          t('Simple paths. Clean URLs: !clean; absolute: !abs.', $t10ns)
+          t('Simple paths. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
           _pathologic_filter('<form action="foo/bar?baz"><IMG LONGDESC="foo/bar?baz=qux" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<form action="' . $paths['foo/bar?baz'] . '"><IMG LONGDESC="' . $paths['foo/bar?baz=qux'] . '" /></a>',
-          t('Paths with query string. Clean URLs: !clean; absolute: !abs.', $t10ns)
+          t('Paths with query string. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
           _pathologic_filter('<a href="foo/bar#baz">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['foo/bar#baz'] . '">',
-          t('Path with fragment. Clean URLs: !clean; absolute: !abs.', $t10ns)
+          t('Path with fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
           _pathologic_filter('<a href="foo/bar?baz=qux#quux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">',
-          t('Path with query string and fragment. Clean URLs: !clean; absolute: !abs.', $t10ns)
+          t('Path with query string and fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
           _pathologic_filter('<a href="/"></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['/'] . '"></a>',
-          t('Path with just slash. Clean URLs: !clean; absolute: !abs', $t10ns)
+          t('Path with just slash. Clean URLs: !clean; protocol style: !ps', $t10ns)
         );
       }
     }
@@ -148,9 +151,9 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Schemeless URLs (//example.com/foo) ignored')
     );
 
-    // Test internal: and also considered local
+    // Test internal: and all base paths
     $filter->settings = array(
-      'absolute' => TRUE,
+      'protocol_style' => 'full',
       'local_paths' => "http://example.com/qux\nhttp://example.org\n/bananas",
     );
     $filter->format++;
@@ -167,7 +170,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     $this->assertEqual(
       _pathologic_filter('<a href="http://example.com/qux/foo"><img src="http://example.org/bar.jpeg" longdesc="/bananas/baz" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
       '<a href="' . url('foo', array('absolute' => TRUE)) . '"><img src="' . url('bar.jpeg', array('absolute' => TRUE)) . '" longdesc="' . url('baz', array('absolute' => TRUE)) . '" /></a>',
-      t('"Also considered local" paths')
+      t('"All base paths for this site" functionality')
     );
     $this->assertEqual(
       _pathologic_filter('<a href="webcal:foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
