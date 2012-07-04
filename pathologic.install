@@ -48,3 +48,24 @@ function pathologic_update_7000($sandbox) {
   }
 }
 
+/**
+ * Convert obsolete "absolute" setting to modern "protocol_style" setting for
+ * each filter instance.
+ */
+function pathologic_update_7200(&$sandbox) {
+  foreach (filter_formats() as $format) {
+    // @see http://drupal.org/node/1304930
+    if (empty($format->filters)) {
+      $format->filters = array();
+      // Add the filters
+      foreach (filter_list_format($format->format) as $filter_name => $filter) {
+        $format->filters[$filter_name] = (array)$filter;
+      }
+    }
+    if (isset($format->filters['pathologic'])) {
+      $format->filters['pathologic']['settings']['protocol_style'] = $format->filters['pathologic']['settings']['absolute'] ? 'full' : 'path';
+      unset($format->filters['pathologic']['settings']['absolute']);
+      filter_format_save($format);
+    }
+  }
+}
