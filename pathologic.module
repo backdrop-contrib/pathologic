@@ -74,16 +74,24 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) 
  * settings form is submitted instead of doing it here?
  */
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
+  // Get the base URL and explode it into component parts. We add these parts
+  // to the exploded local paths settings later.
   global $base_url;
   $base_url_parts = parse_url($base_url . '/');
+  // Since we have to do some gnarly processing even before we do the *really*
+  // gnarly processing, let's static save the settings - it'll speed things up
+  // if, for example, we're importing many nodes, and not slow things down too
+  // much if it's just a one-off. But since different text formats will have
+  // different settings, we build an array of settings, keyed by format ID.
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
     $filter->settings['local_paths_exploded'] = array();
     if ($filter->settings['local_paths'] !== '') {
-      $filter->settings['local_paths_array'] = array_map('trim', explode("\n", $filter->settings['local_paths']));
-      foreach ($filter->settings['local_paths_array'] as $local) {
+      // Build an array of the exploded local paths for this format's settings.
+      $local_paths = array_map('trim', explode("\n", $filter->settings['local_paths']));
+      foreach ($local_paths as $local) {
         $parts = parse_url($local);
-        // Okay, what the hellish if statement is doing below is checking to
+        // Okay, what the hellish "if" statement is doing below is checking to
         // make sure we aren't about to add a path to our array of exploded
         // local paths which matches the current "local" path. We consider it
         // not a match, if…
@@ -107,7 +115,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
             $parts['path'] !== $base_url_parts['path']
           )
         ) {
-        // Add it to the list.
+          // Add it to the list.
           $filter->settings['local_paths_exploded'][] = $parts;
         }
       }
@@ -118,10 +126,12 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
 
     $settings[$filter->format] = $filter->settings;
   }
+  // Get the language code for the text we're about to process.
   $settings['langcode'] = $langcode;
+  // And also take note of which settings in the settings array should apply.
   $settings['current_settings'] = &$settings[$filter->format];
 
-  // Prepare language objects to pass to url()
+  // Prepare language objects to pass to url().
   if (!isset($settings['language_list'])) {
     $settings['language_list'] = language_list();
     // Add a fake "none" language for when we don't actually want to do
@@ -129,16 +139,23 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     $settings['language_list'][LANGUAGE_NONE] = (object) array('language' => LANGUAGE_NONE, 'prefix' => '');
   }
 
+  // Now that we have aall of our settings prepared, attempt to process all
+  // paths in href, src, action or longdesc HTML attributes. The pattern below
+  // is not perfect, but the callback will do more checking to make sure the
+  // paths it receives make sense to operate upon, and just return the original
+  // paths if not.
   return preg_replace_callback('~(href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
 }
 
 /**
- * Replace the attributes. preg_replace_callback() callback.
+ * Process and replace paths. preg_replace_callback() callback.
  */
 function _pathologic_replace($matches) {
-  // Get the settings for the filter. There's basically three ways to do this:
-  // abuse eval() and friends; abuse globals; or abuse drupal_static(). The
-  // latter is the least offensive, I think.
+  // Get the settings for the filter. Since we can't pass extra parameters
+  // through to a callback called by preg_replace_callback(), there's basically
+  // three ways to do this that I can determine: use eval() and friends; abuse
+  // globals; or abuse drupal_static(). The latter is the least offensive, I
+  // guess…
   $settings = drupal_static('_pathologic_filter');
   // First, let's bail out if we're using a schemeless URL. See [#1617944].
   // parse_url() can't parse these correctly anyway (the entire URL will be in
@@ -147,9 +164,9 @@ function _pathologic_replace($matches) {
   if (strpos($matches[2], '//') === 0) {
     return $matches[0];
   }
-  // Now parse the URL
+  // Now parse the URL.
   $parts = parse_url($matches[2]);
-  // Do some early tests to see if we should just give up now.
+  // Do some more early tests to see if we should just give up now.
   if (
     // If parse_url() failed, give up.
     $parts === FALSE ||
