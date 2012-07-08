@@ -153,7 +153,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
 function _pathologic_replace($matches) {
   // Get the settings for the filter. Since we can't pass extra parameters
   // through to a callback called by preg_replace_callback(), there's basically
-  // three ways to do this that I can determine: use eval() and friends; abuse
+  // three ways to do this that I can determine: use eval() and friends; abuse
   // globals; or abuse drupal_static(). The latter is the least offensive, I
   // guess…
   $settings = drupal_static('_pathologic_filter');
