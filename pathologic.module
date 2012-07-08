@@ -223,8 +223,24 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
 
-  // First, "files:" support. This is fairly easy.
-  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
+  // Okay, now we try to deal with paths to files. We detect if this is a path
+  // to a file if it has a scheme of "files" (Path Filter-style), or if, when
+  // we run it through realpath(), we get a path to a file which actually
+  // exists. If so, we try to create a URL using file_create_url(). This is
+  // all kind of iffy… if we end up using a file_create_url() path, that path
+  // won't have transformations done on it by Pathologic, such as conversion
+  // to a protocol-relative URL. Possible fix: Implement hook_file_url_alter()?
+  // @see file_create_url()
+  // @see hook_file_url_alter()
+  // @see [#1672430]
+  if (
+    // If we have a scheme of "files"…
+    (isset($parts['scheme']) && $parts['scheme'] === 'files')
+    // or of this seems to be a path to a file which really exists… (Note that
+    // file_exists() returns TRUE for directories, which is not desired
+    // behavior; hence is_file() below) 
+    || is_file(realpath($parts['path']))
+  ) {
     // Can we create a file URL for it?
     $file_url = file_create_url(file_build_uri($parts['path']));
     if ($file_url) {
@@ -234,12 +250,6 @@ function _pathologic_replace($matches) {
       // That didn't work. Bail out.
       return $matches[0];
     }
-  }
-  elseif (file_exists(realpath($parts['path']))) {
-    // Okay, they didn't use files:, but does it appear that the path is still
-    // to a real file on the disk? If so, we don't want to adjust for language.
-    // Also, skip all other tweaks.
-    $settings['langcode'] = LANGUAGE_NONE;
   }
 
   // Examine the query part of the URL. Break it up and look through it; if it
