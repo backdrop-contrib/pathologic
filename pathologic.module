@@ -305,6 +305,9 @@ function _pathologic_replace($matches) {
  * As the Drupal core url() function doesn't support protocol-relative URLs, we
  * work around it by just creating a full URL and then running it through this
  * to strip off the protocol.
+ *
+ * Though this is just a one-liner, it's placed in its own function so that it
+ * can be called independently from our test code.
  */
 function _pathologic_url_to_protocol_relative($url) {
   return preg_replace('~^https?://~', '//', $url);
