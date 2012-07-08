@@ -123,6 +123,8 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     // Now add local paths based on "this" server URL.
     $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
     $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+    // We'll also just store the host part separately for easy access.
+    $filter->settings['base_url_host'] = $base_url_parts['host'];
 
     $settings[$filter->format] = $filter->settings;
   }
@@ -292,7 +294,15 @@ function _pathologic_replace($matches) {
   // If we need to create a protocol-relative URL, then convert the absolute
   // URL we have now.
   if ($settings['current_settings']['protocol_style'] === 'proto-rel') {
-    $url = _pathologic_url_to_protocol_relative($url);
+    // Now, what might have happened here is that url() returned a URL which
+    // isn't on "this" server due to a hook_url_outbound_alter() implementation.
+    // We don't want to convert the URL in that case. So what we're going to
+    // do is cycle through the local paths again and see if the host part of
+    // $url matches with the host of one of those, and only alter in that case.
+    $url_parts = parse_url($url);
+    if (!empty($url_parts['host']) && $url_parts['host'] === $settings['current_settings']['base_url_host']) {
+      $url = _pathologic_url_to_protocol_relative($url);
+    }
   }
 
   // $matches[1] will be the tag attribute; src, href, etc.
