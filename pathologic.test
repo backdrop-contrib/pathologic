@@ -70,11 +70,11 @@ class PathologicTestCase extends DrupalWebTestCase {
         'path' => 'foo/bar',
         'opts' => array('fragment' => 'baz'),
       ),
-      'foo/bar?baz=qux#quux' => array(
+      'foo/bar?baz=qux&amp;quux=quuux#quuuux' => array(
         'path' => 'foo/bar',
         'opts' => array(
-          'query' => array('baz' => 'qux'),
-          'fragment' => 'quux',
+          'query' => array('baz' => 'qux', 'quux' => 'quuux'),
+          'fragment' => 'quuuux',
         ),
       ),
       '/' => array(
@@ -93,7 +93,7 @@ class PathologicTestCase extends DrupalWebTestCase {
         $paths = array();
         foreach ($test_paths as $path => $args) {
           $args['opts']['absolute'] = $protocol_style !== 'path';
-          $paths[$path] = url($args['path'], $args['opts']);
+          $paths[$path] = _pathologic_content_url($args['path'], $args['opts']);
           if ($protocol_style === 'proto-rel') {
             $paths[$path] = _pathologic_url_to_protocol_relative($paths[$path]);
           }
@@ -119,8 +119,8 @@ class PathologicTestCase extends DrupalWebTestCase {
           t('Path with fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
-          _pathologic_filter('<a href="foo/bar?baz=qux#quux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-          '<a href="' . $paths['foo/bar?baz=qux#quux'] . '">',
+          _pathologic_filter('<a href="foo/bar?baz=qux&amp;quux=quuux#quuuux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+          '<a href="' . $paths['foo/bar?baz=qux&amp;quux=quuux#quuuux'] . '">',
           t('Path with query string and fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
@@ -134,13 +134,13 @@ class PathologicTestCase extends DrupalWebTestCase {
     global $base_path;
     $this->assertEqual(
       _pathologic_filter('<a href="' . $base_path . 'foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) .'">bar</a>',
       t('Paths beginning with $base_path (like WYSIWYG editors like to make)')
     );
     global $base_url;
     $this->assertEqual(
       _pathologic_filter('<a href="' . $base_url . '/foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) .'">bar</a>',
       t('Paths beginning with $base_url')
     );
 
@@ -159,17 +159,17 @@ class PathologicTestCase extends DrupalWebTestCase {
     $filter->format++;
     $this->assertEqual(
       _pathologic_filter('<a href="internal:foo">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . url('foo', array('absolute' => TRUE)) . '">',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => TRUE)) . '">',
       t('Path Filter compatibility (internal:)')
     );
     $this->assertEqual(
       _pathologic_filter('<a href="files:image.jpeg">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . file_create_url(file_build_uri('image.jpeg')) . '">',
+      '<a href="' . check_plain(file_create_url(file_build_uri('image.jpeg'))) . '">',
       t('Path Filter compatibility (files:)')
     );
     $this->assertEqual(
       _pathologic_filter('<a href="http://example.com/qux/foo"><img src="http://example.org/bar.jpeg" longdesc="/bananas/baz" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . url('foo', array('absolute' => TRUE)) . '"><img src="' . url('bar.jpeg', array('absolute' => TRUE)) . '" longdesc="' . url('baz', array('absolute' => TRUE)) . '" /></a>',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => TRUE)) . '"><img src="' . _pathologic_content_url('bar.jpeg', array('absolute' => TRUE)) . '" longdesc="' . _pathologic_content_url('baz', array('absolute' => TRUE)) . '" /></a>',
       t('"All base paths for this site" functionality')
     );
     $this->assertEqual(
@@ -178,4 +178,20 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('URLs with likely protocols are ignored')
     );
   }
+}
+
+/**
+ * Wrapper around url() which does HTML entity decoding and encoding.
+ *
+ * Since Pathologic works with paths in content, it needs to decode paths which
+ * have been HTML-encoded, and re-encode them when done. This is a wrapper
+ * around url() which does the same thing so that we can expect the results
+ * from it and from Pathologic to still match in our tests.
+ *
+ * @see url()
+ * @see [#1672932]
+ * @see http://www.w3.org/TR/xhtml1/guidelines.html#C_12
+ */
+function _pathologic_content_url($path, $options) {
+  return check_plain(url(htmlspecialchars_decode($path), $options));
 }

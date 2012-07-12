@@ -166,8 +166,9 @@ function _pathologic_replace($matches) {
   if (strpos($matches[2], '//') === 0) {
     return $matches[0];
   }
-  // Now parse the URL.
-  $parts = parse_url($matches[2]);
+  // Now parse the URL after reverting HTML character encoding.
+  // @see [#1672932]
+  $parts = parse_url(htmlspecialchars_decode($matches[2]));
   // Do some more early tests to see if we should just give up now.
   if (
     // If parse_url() failed, give up.
@@ -305,6 +306,9 @@ function _pathologic_replace($matches) {
     }
   }
 
+  // Apply HTML character encoding, as is required for HTML attributes.
+  // @see [#1672932]
+  $url = check_plain($url);
   // $matches[1] will be the tag attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}";
 }
