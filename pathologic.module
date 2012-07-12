@@ -231,7 +231,10 @@ function _pathologic_replace($matches) {
     // Can we create a file URL for it?
     $file_url = file_create_url(file_build_uri($parts['path']));
     if ($file_url) {
-      return $matches[1] . '="' . $file_url;
+      // Encode URL and pass it along.
+      // @see [#1672932]
+      $file_url = check_plain($file_url);
+      return "{$matches[1]}=\"{$file_url}";
     }
     else {
       // That didn't work. Bail out.
