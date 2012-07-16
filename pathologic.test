@@ -77,6 +77,12 @@ class PathologicTestCase extends DrupalWebTestCase {
           'fragment' => 'quuuux',
         ),
       ),
+      'foo%20bar?baz=qux%26quux' => array(
+        'path' => 'foo bar',
+        'opts' => array(
+          'query' => array('baz' => 'qux&quux'),
+        ),
+      ),
       '/' => array(
         'path' => '<front>',
         'opts' => array(),
@@ -122,6 +128,11 @@ class PathologicTestCase extends DrupalWebTestCase {
           _pathologic_filter('<a href="foo/bar?baz=qux&amp;quux=quuux#quuuux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['foo/bar?baz=qux&amp;quux=quuux#quuuux'] . '">',
           t('Path with query string and fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
+        );
+        $this->assertEqual(
+          _pathologic_filter('<a href="foo%20bar?baz=qux%26quux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+          '<a href="' . $paths['foo%20bar?baz=qux%26quux'] . '">',
+          t('Path with URL encoded parts')
         );
         $this->assertEqual(
           _pathologic_filter('<a href="/"></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),

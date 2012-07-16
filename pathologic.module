@@ -181,6 +181,12 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
 
+  // Undo possible URL encoding in the path.
+  // @see [#1672932]
+  if (isset($parts['path'])) {
+    $parts['path'] = rawurldecode($parts['path']);
+  }
+
   // Let's also bail out of this doesn't look like a local path.
   $found = FALSE;
   // Cycle through local paths and find one with a host and a path that matches;
