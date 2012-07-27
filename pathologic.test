@@ -179,6 +179,11 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Path Filter compatibility (files:)')
     );
     $this->assertEqual(
+      _pathologic_filter('<img src="misc/feed.png" />', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+      '<img src="' . file_create_url(file_build_uri('misc/feed.png')) . '" />',
+      t('Paths to existing files')
+    );
+    $this->assertEqual(
       _pathologic_filter('<a href="http://example.com/qux/foo"><img src="http://example.org/bar.jpeg" longdesc="/bananas/baz" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
       '<a href="' . _pathologic_content_url('foo', array('absolute' => TRUE)) . '"><img src="' . _pathologic_content_url('bar.jpeg', array('absolute' => TRUE)) . '" longdesc="' . _pathologic_content_url('baz', array('absolute' => TRUE)) . '" /></a>',
       t('"All base paths for this site" functionality')
