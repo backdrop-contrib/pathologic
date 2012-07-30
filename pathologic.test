@@ -175,7 +175,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     );
     $this->assertEqual(
       _pathologic_filter('<a href="files:image.jpeg">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
-      '<a href="' . check_plain(file_create_url(file_build_uri('image.jpeg'))) . '">',
+      '<a href="' . _pathologic_content_url('image.jpeg', array('absolute' => TRUE, 'is_file' => TRUE)) . '">',
       t('Path Filter compatibility (files:)')
     );
     $this->assertEqual(
@@ -188,6 +188,17 @@ class PathologicTestCase extends DrupalWebTestCase {
       '<a href="webcal:foo">bar</a>',
       t('URLs with likely protocols are ignored')
     );
+
+    // Test paths to existing files when clean URLs are disabled.
+    // @see [#1672430]
+    variable_set('clean_url', FALSE);
+    $filtered_tag = _pathologic_filter('<img src="misc/druplicon.png" />', $filter, NULL, LANGUAGE_NONE, NULL, NULL);
+    $this->assertTrue(
+      strpos($filtered_tag, 'q=') === FALSE,
+      t('Paths to files don\'t have ?q= when clean URLs are off')
+    );
+
+
   }
 }
 
@@ -204,5 +215,21 @@ class PathologicTestCase extends DrupalWebTestCase {
  * @see http://www.w3.org/TR/xhtml1/guidelines.html#C_12
  */
 function _pathologic_content_url($path, $options) {
-  return check_plain(url(htmlspecialchars_decode($path), $options));
+  // If we should pretend this is a path to a file, temporarily enable clean
+  // URLs if necessary.
+  // @see _pathologic_replace()
+  // @see [#1672430]
+  if (!empty($options['is_file'])) {
+    $options['orig_clean_url'] = !empty($GLOBALS['conf']['clean_url']);
+    if (!$options['orig_clean_url']) {
+      $GLOBALS['conf']['clean_url'] = TRUE;
+    }
+  }
+
+  $url = check_plain(url(htmlspecialchars_decode($path), $options));
+
+  if (!empty($options['is_file']) && !$options['orig_clean_url']) {
+    $GLOBALS['conf']['clean_url'] = FALSE;
+  }
+  return $url;
 }

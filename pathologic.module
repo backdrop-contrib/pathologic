@@ -157,7 +157,8 @@ function _pathologic_replace($matches) {
   // through to a callback called by preg_replace_callback(), there's basically
   // three ways to do this that I can determine: use eval() and friends; abuse
   // globals; or abuse drupal_static(). The latter is the least offensive, I
-  // guess…
+  // guess… Note that we don't do the & thing here so that we can modify
+  // $settings later and not have the changes be "permanent."
   $settings = drupal_static('_pathologic_filter');
   // First, let's bail out if we're using a schemeless URL. See [#1617944].
   // parse_url() can't parse these correctly anyway (the entire URL will be in
@@ -232,26 +233,19 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
 
-  // First, "files:" support. This is fairly easy.
-  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
-    // Can we create a file URL for it?
-    $file_url = file_create_url(file_build_uri($parts['path']));
-    if ($file_url) {
-      // Encode URL and pass it along.
-      // @see [#1672932]
-      $file_url = check_plain($file_url);
-      return "{$matches[1]}=\"{$file_url}";
-    }
-    else {
-      // That didn't work. Bail out.
-      return $matches[0];
-    }
-  }
-  elseif (file_exists(realpath($parts['path']))) {
-    // Okay, they didn't use files:, but does it appear that the path is still
-    // to a real file on the disk? If so, we don't want to adjust for language.
-    // Also, skip all other tweaks.
+  // Check to see if we're dealing with a file.
+  if (
+    // Path Filter "files:" scheme support
+    (isset($parts['scheme']) && $parts['scheme'] === 'files')
+    // …Or it's just easy to find this file on the disk.
+    || is_file($parts['path'])
+  ) {
+    // Don't do language handling for file paths.
     $settings['langcode'] = LANGUAGE_NONE;
+    $settings['is_file'] = TRUE;
+  }
+  else {
+    $settings['is_file'] = FALSE;
   }
 
   // Examine the query part of the URL. Break it up and look through it; if it
@@ -289,6 +283,20 @@ function _pathologic_replace($matches) {
     $parts['path'] = substr($parts['path'], 1);
   }
 
+  // If the path is for a file and clean URLs are enabled, then the path that
+  // url() will create will have a q= query fragment, which won't work for
+  // files. To avoid that, we use this trick to temporarily turn clean URLs on.
+  // This is horrible, but it seems to be the sanest way to do this.
+  // @see [#1672430]
+  // @todo Submit core patch allowing clean URLs to be toggled by option sent
+  // to url()?
+  if (!empty($settings['is_file'])) {
+    $settings['orig_clean_url'] = !empty($GLOBALS['conf']['clean_url']);
+    if (!$settings['orig_clean_url']) {
+      $GLOBALS['conf']['clean_url'] = TRUE;
+    }
+  }
+
   $url = url(
     $parts['path'] === '' ? '<front>' : $parts['path'],
     array(
@@ -300,6 +308,12 @@ function _pathologic_replace($matches) {
       'language' => isset($settings['language_list'][$settings['langcode']]) ? $settings['language_list'][$settings['langcode']] : $settings['language_list'][LANGUAGE_NONE],
     )
   );
+
+  // If we turned clean URLs on before to create a path to a file, turn them
+  // back off.
+  if ($settings['is_file'] && !$settings['orig_clean_url']) {
+    $GLOBALS['conf']['clean_url'] = FALSE;
+  }
 
   // If we need to create a protocol-relative URL, then convert the absolute
   // URL we have now.
