@@ -88,7 +88,9 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     $filter->settings['local_paths_exploded'] = array();
     if ($filter->settings['local_paths'] !== '') {
       // Build an array of the exploded local paths for this format's settings.
-      $local_paths = array_map('trim', explode("\n", $filter->settings['local_paths']));
+      // array_filter() below is filtering out items from the array which equal
+      // FALSE - so empty strings (which were causing problems).
+      $local_paths = array_filter(array_map('trim', explode("\n", $filter->settings['local_paths'])));
       foreach ($local_paths as $local) {
         $parts = parse_url($local);
         // Okay, what the hellish "if" statement is doing below is checking to
