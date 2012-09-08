@@ -81,7 +81,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // Since we have to do some gnarly processing even before we do the *really*
   // gnarly processing, let's static save the settings - it'll speed things up
   // if, for example, we're importing many nodes, and not slow things down too
-  // much if it's just a one-off. But since different text formats will have
+  // much if it's just a one-off. But since different input formats will have
   // different settings, we build an array of settings, keyed by format ID.
   $settings = &drupal_static(__FUNCTION__, array());
   if (!isset($settings[$filter->format])) {
@@ -89,7 +89,8 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     if ($filter->settings['local_paths'] !== '') {
       // Build an array of the exploded local paths for this format's settings.
       // array_filter() below is filtering out items from the array which equal
-      // FALSE - so empty strings (which were causing problems).
+      // FALSE - so empty strings (which were causing problems.
+      // @see http://drupal.org/node/1727492
       $local_paths = array_filter(array_map('trim', explode("\n", $filter->settings['local_paths'])));
       foreach ($local_paths as $local) {
         $parts = parse_url($local);
@@ -143,7 +144,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     $settings['language_list'][LANGUAGE_NONE] = (object) array('language' => LANGUAGE_NONE, 'prefix' => '');
   }
 
-  // Now that we have aall of our settings prepared, attempt to process all
+  // Now that we have all of our settings prepared, attempt to process all
   // paths in href, src, action or longdesc HTML attributes. The pattern below
   // is not perfect, but the callback will do more checking to make sure the
   // paths it receives make sense to operate upon, and just return the original
@@ -162,7 +163,8 @@ function _pathologic_replace($matches) {
   // guess… Note that we don't do the & thing here so that we can modify
   // $settings later and not have the changes be "permanent."
   $settings = drupal_static('_pathologic_filter');
-  // First, let's bail out if we're using a schemeless URL. See [#1617944].
+  // First, let's bail out if we're using a schemeless URL.
+  // @see http://drupal.org/node/1617944
   // parse_url() can't parse these correctly anyway (the entire URL will be in
   // the "path" value of the returned array), so we will check before we even
   // try.
@@ -170,7 +172,7 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
   // Now parse the URL after reverting HTML character encoding.
-  // @see [#1672932]
+  // @see http://drupal.org/node/1672932
   $parts = parse_url(htmlspecialchars_decode($matches[2]));
   // Do some more early tests to see if we should just give up now.
   if (
@@ -185,7 +187,7 @@ function _pathologic_replace($matches) {
   }
 
   // Undo possible URL encoding in the path.
-  // @see [#1672932]
+  // @see http://drupal.org/node/1672932
   if (isset($parts['path'])) {
     $parts['path'] = rawurldecode($parts['path']);
   }
@@ -289,7 +291,7 @@ function _pathologic_replace($matches) {
   // url() will create will have a q= query fragment, which won't work for
   // files. To avoid that, we use this trick to temporarily turn clean URLs on.
   // This is horrible, but it seems to be the sanest way to do this.
-  // @see [#1672430]
+  // @see http://drupal.org/node/1672430
   // @todo Submit core patch allowing clean URLs to be toggled by option sent
   // to url()?
   if (!empty($settings['is_file'])) {
@@ -332,7 +334,7 @@ function _pathologic_replace($matches) {
   }
 
   // Apply HTML character encoding, as is required for HTML attributes.
-  // @see [#1672932]
+  // @see http://drupal.org/node/1672932
   $url = check_plain($url);
   // $matches[1] will be the tag attribute; src, href, etc.
   return "{$matches[1]}=\"{$url}";
