@@ -237,8 +237,18 @@ function _pathologic_replace($matches) {
     return $matches[0];
   }
 
-  // Check to see if we're dealing with a file.
-  if (
+  // Check to see if we're dealing with a file. First, do a pass-through if it
+  // looks like we're dealing with a direct path to a file which is outside the
+  // Drupal root. Use realpath() and $_SERVER['DOCUMENT_ROOT'] to iron out
+  // wrinkles to the file's actual path.
+  // @see http://drupal.org/node/1763696
+  // @todo Can we always count on $_SERVER['DOCUMENT_ROOT'] being available?
+  // @todo Should we still try to do path correction on these files too?
+  $filepath = realpath($_SERVER['DOCUMENT_ROOT'] . '/' . $parts['path']);
+  if (is_file($filepath) && strpos($filepath, DRUPAL_ROOT) !== 0) {
+    return $matches[0];
+  }
+  elseif (
     // Path Filter "files:" scheme support
     (isset($parts['scheme']) && $parts['scheme'] === 'files')
     // …Or it's just easy to find this file on the disk.
