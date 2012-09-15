@@ -256,6 +256,7 @@ function _pathologic_replace($matches) {
     if (!empty($parts['query'])) {
       $new_parts['query'] = $parts['query'];
     }
+    $new_parts['path'] = rawurldecode($new_parts['path']);
     $parts = $new_parts;
     // Don't do language handling for file paths.
     $settings['langcode'] = LANGUAGE_NONE;
