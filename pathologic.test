@@ -155,7 +155,7 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Paths beginning with $base_url')
     );
 
-    // [#1617944]
+    // @see http://drupal.org/node/1617944
     $this->assertEqual(
       _pathologic_filter('<a href="//example.com/foo">bar</a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
       '<a href="//example.com/foo">bar</a>',
@@ -190,7 +190,7 @@ class PathologicTestCase extends DrupalWebTestCase {
     );
 
     // Test paths to existing files when clean URLs are disabled.
-    // @see [#1672430]
+    // @see http://drupal.org/node/1672430
     variable_set('clean_url', FALSE);
     $filtered_tag = _pathologic_filter('<img src="misc/druplicon.png" />', $filter, NULL, LANGUAGE_NONE, NULL, NULL);
     $this->assertTrue(
@@ -211,14 +211,14 @@ class PathologicTestCase extends DrupalWebTestCase {
  * from it and from Pathologic to still match in our tests.
  *
  * @see url()
- * @see [#1672932]
+ * @see http://drupal.org/node/1672932
  * @see http://www.w3.org/TR/xhtml1/guidelines.html#C_12
  */
 function _pathologic_content_url($path, $options) {
   // If we should pretend this is a path to a file, temporarily enable clean
   // URLs if necessary.
   // @see _pathologic_replace()
-  // @see [#1672430]
+  // @see http://drupal.org/node/1672430
   if (!empty($options['is_file'])) {
     $options['orig_clean_url'] = !empty($GLOBALS['conf']['clean_url']);
     if (!$options['orig_clean_url']) {
