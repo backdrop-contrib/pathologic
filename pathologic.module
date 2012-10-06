@@ -346,7 +346,7 @@ function _pathologic_replace($matches) {
   if ($url_params['options']['use_original']) {
     return $matches[0];
   }
-      
+
   // If the path is for a file and clean URLs are enabled, then the path that
   // url() will create will have a q= query fragment, which won't work for
   // files. To avoid that, we use this trick to temporarily turn clean URLs on.
