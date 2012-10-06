@@ -189,6 +189,18 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('URLs with likely protocols are ignored')
     );
 
+    // Test hook_pathologic_alter() implementation.
+    $this->assertEqual(
+      _pathologic_filter('<a href="foo?test=add_foo_qpart">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => TRUE, 'query' => array('test' => 'add_foo_qpart', 'foo' => 'bar'))) . '">',
+      t('hook_pathologic_alter(): Alter $url_params')
+    );
+    $this->assertEqual(
+      _pathologic_filter('<a href="bar?test=use_original">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+      '<a href="bar?test=use_original">',
+      t('hook_pathologic_alter(): Passthrough with use_original option')
+    );
+
     // Test paths to existing files when clean URLs are disabled.
     // @see http://drupal.org/node/1672430
     variable_set('clean_url', FALSE);
@@ -232,4 +244,22 @@ function _pathologic_content_url($path, $options) {
     $GLOBALS['conf']['clean_url'] = FALSE;
   }
   return $url;
+}
+
+/**
+ * Implements hook_pathologic_alter(), for testing that functionality.
+ */
+function pathologic_pathologic_alter(&$url_params, $parts, $settings) {
+  if (is_array($parts['qparts']) && isset($parts['qparts']['test'])) {
+    if ($parts['qparts']['test'] === 'add_foo_qpart') {
+      // Add a "foo" query part
+      if (empty($url_params['options']['query'])) {
+        $url_params['options']['query'] = array();
+      }
+      $url_params['options']['query']['foo'] = 'bar';
+    }
+    elseif ($parts['qparts']['test'] === 'use_original') {
+      $url_params['options']['use_original'] = TRUE;
+    }
+  }
 }
