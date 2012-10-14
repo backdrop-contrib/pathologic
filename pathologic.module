@@ -199,6 +199,39 @@ function _pathologic_replace($matches) {
     $parts['path'] = rawurldecode($parts['path']);
   }
 
+  // Check to see if we're dealing with a file. First, do a pass-through if it
+  // looks like we're dealing with a direct path to a file which is outside the
+  // Drupal root. Use realpath() and the server's (?) docroot to iron out
+  // wrinkles to the file's actual path.
+  // @see http://drupal.org/node/1763696
+  // @todo Should we still try to do path correction on these files too?
+  $filepath = realpath($settings['current_settings']['docroot'] . '/' . $parts['path']);
+  if ($filepath && is_file($filepath) && strpos($filepath, DRUPAL_ROOT) !== 0) {
+    return $matches[0];
+  }
+  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
+    // Path Filter "files:" support. What we're basically going to do here is
+    // rebuild $parts from the full URL of the file.
+    $new_parts = parse_url(file_create_url(file_default_scheme() . '://' . $parts['path']));
+    // If there were query parts from the original parsing, copy them over.
+    if (!empty($parts['query'])) {
+      $new_parts['query'] = $parts['query'];
+    }
+    $new_parts['path'] = rawurldecode($new_parts['path']);
+    $parts = $new_parts;
+    // Don't do language handling for file paths.
+    $settings['langcode'] = LANGUAGE_NONE;
+    $settings['is_file'] = TRUE;
+  }
+  elseif (is_file($parts['path'])) {
+    // Don't do language handling for file paths.
+    $settings['langcode'] = LANGUAGE_NONE;
+    $settings['is_file'] = TRUE;
+  }
+  else {
+    $settings['is_file'] = FALSE;
+  }
+
   // Let's also bail out of this doesn't look like a local path.
   $found = FALSE;
   // Cycle through local paths and find one with a host and a path that matches;
@@ -242,39 +275,6 @@ function _pathologic_replace($matches) {
   // big foreach() mess above, we still want to pass it through.
   if (!$found && !(isset($parts['path']) && !isset($parts['host']))) {
     return $matches[0];
-  }
-
-  // Check to see if we're dealing with a file. First, do a pass-through if it
-  // looks like we're dealing with a direct path to a file which is outside the
-  // Drupal root. Use realpath() and the server's (?) docroot to iron out
-  // wrinkles to the file's actual path.
-  // @see http://drupal.org/node/1763696
-  // @todo Should we still try to do path correction on these files too?
-  $filepath = realpath($settings['current_settings']['docroot'] . '/' . $parts['path']);
-  if ($filepath && is_file($filepath) && strpos($filepath, DRUPAL_ROOT) !== 0) {
-    return $matches[0];
-  }
-  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
-    // Path Filter "files:" support. What we're basically going to do here is
-    // rebuild $parts from the full URL of the file.
-    $new_parts = parse_url(file_create_url(file_default_scheme() . '://' . $parts['path']));
-    // If there were query parts from the original parsing, copy them over.
-    if (!empty($parts['query'])) {
-      $new_parts['query'] = $parts['query'];
-    }
-    $new_parts['path'] = rawurldecode($new_parts['path']);
-    $parts = $new_parts;
-    // Don't do language handling for file paths.
-    $settings['langcode'] = LANGUAGE_NONE;
-    $settings['is_file'] = TRUE;
-  }
-  elseif (is_file($parts['path'])) {
-    // Don't do language handling for file paths.
-    $settings['langcode'] = LANGUAGE_NONE;
-    $settings['is_file'] = TRUE;
-  }
-  else {
-    $settings['is_file'] = FALSE;
   }
 
   // Examine the query part of the URL. Break it up and look through it; if it
