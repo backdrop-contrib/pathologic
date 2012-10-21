@@ -198,6 +198,9 @@ function _pathologic_replace($matches) {
   if (isset($parts['path'])) {
     $parts['path'] = rawurldecode($parts['path']);
   }
+  else {
+    $parts['path'] = '';
+  }
 
   // Check to see if we're dealing with a file. First, do a pass-through if it
   // looks like we're dealing with a direct path to a file which is outside the
