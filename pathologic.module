@@ -330,7 +330,16 @@ function _pathologic_replace($matches) {
       // Create an absolute URL if protocol_style is 'full' or 'proto-rel', but
       // not if it's 'path'.
       'absolute' => $settings['current_settings']['protocol_style'] !== 'path',
-      'language' => isset($settings['language_list'][$settings['langcode']]) ? $settings['language_list'][$settings['langcode']] : $settings['language_list'][LANGUAGE_NONE],
+      // Note: There appears to be a bug in core which will cause the following
+      // to result in worse-than-failure behavior if it's uncommented and runs
+      // as is.
+      // @see http://drupal.org/node/1812264
+      // @see http://drupal.org/node/1806678
+/*       'language' => isset($settings['language_list'][$settings['langcode']]) ? $settings['language_list'][$settings['langcode']] : $settings['language_list'][LANGUAGE_NONE], */
+      // However, we still don't want paths to files to have language codes
+      // added. So, this ugliness.
+      // @todo Fix when core is fixed.
+      'language' => $settings['is_file'] ? $settings['language_list'][LANGUAGE_NONE] : NULL,
       // A special parameter not actually used by url(), but we use it to see if
       // an alter hook implementation wants us to just pass through the original
       // URL.
