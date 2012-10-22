@@ -44,7 +44,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
     'protocol_style' => array(
       '#type' => 'radios',
       '#title' => t('Processed URL format'),
-      '#default_value' => isset($filter->settings['protocol_style']) ? $filter->settings['protocol_style'] : 'full',
+      '#default_value' => isset($filter->settings['protocol_style']) ? $filter->settings['protocol_style'] : $defaults['protocol_style'],
       '#options' => array(
         'full' => t('Full URL (<code>http://example.com/foo/bar</code>)'),
         'proto-rel' => t('Protocol relative URL (<code>//example.com/foo/bar</code>)'),
