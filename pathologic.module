@@ -34,7 +34,7 @@ function pathologic_filter_info() {
 /**
  * Settings callback for Pathologic.
  */
-function _pathologic_settings($form, &$form_state, $filter, $format, $defaults) {
+function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, $filters) {
   return array(
     'reminder' => array(
       '#type' => 'item',
