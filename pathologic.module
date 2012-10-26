@@ -184,18 +184,20 @@ function _pathologic_replace($matches) {
   // Do some more early tests to see if we should just give up now.
   if (
     // If parse_url() failed, give up.
-    $parts === FALSE ||
+    $parts === FALSE
     // If there's a scheme part and it doesn't look useful, bail out.
     // "files" and "internal" are for Path Filter compatibility.
-    (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal')))
+    || (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal')))
+    // Bail out if it looks like there's only a fragment part.
+    || (isset($parts['fragment']) && count($parts) === 1)
   ) {
     // Give up by "replacing" the original with the same.
     return $matches[0];
   }
 
-  // Undo possible URL encoding in the path.
-  // @see http://drupal.org/node/1672932
   if (isset($parts['path'])) {
+    // Undo possible URL encoding in the path.
+    // @see http://drupal.org/node/1672932
     $parts['path'] = rawurldecode($parts['path']);
   }
   else {
