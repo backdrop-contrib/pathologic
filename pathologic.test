@@ -125,6 +125,11 @@ class PathologicTestCase extends DrupalWebTestCase {
           t('Path with fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
+          _pathologic_filter('<a href="#foo">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+          '<a href="#foo">',
+          t('Fragment-only links. Clean URLs: !clean; protocol style: !ps.', $t10ns)
+        );
+        $this->assertEqual(
           _pathologic_filter('<a href="foo/bar?baz=qux&amp;quux=quuux#quuuux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="' . $paths['foo/bar?baz=qux&amp;quux=quuux#quuuux'] . '">',
           t('Path with query string and fragment. Clean URLs: !clean; protocol style: !ps.', $t10ns)
