@@ -211,10 +211,18 @@ function _pathologic_replace($matches) {
   // @see http://drupal.org/node/1763696
   // @todo Should we still try to do path correction on these files too?
   $filepath = realpath($settings['current_settings']['docroot'] . '/' . $parts['path']);
-  if ($filepath && is_file($filepath) && strpos($filepath, DRUPAL_ROOT) !== 0) {
-    return $matches[0];
+  if ($filepath && is_file($filepath)) {
+    // Is the file outside the Drupal root?
+    if (strpos($filepath, DRUPAL_ROOT) !== 0) {
+      return $matches[0];
+    }
+    else {
+      // Linking to a file inside the Drupal root. Okay.
+      $settings['langcode'] = LANGUAGE_NONE;
+      $settings['is_file'] = TRUE;
+    }
   }
-  if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
+  elseif (isset($parts['scheme']) && $parts['scheme'] === 'files') {
     // Path Filter "files:" support. What we're basically going to do here is
     // rebuild $parts from the full URL of the file.
     $new_parts = parse_url(file_create_url(file_default_scheme() . '://' . $parts['path']));
@@ -224,11 +232,6 @@ function _pathologic_replace($matches) {
     }
     $new_parts['path'] = rawurldecode($new_parts['path']);
     $parts = $new_parts;
-    // Don't do language handling for file paths.
-    $settings['langcode'] = LANGUAGE_NONE;
-    $settings['is_file'] = TRUE;
-  }
-  elseif (is_file($parts['path'])) {
     // Don't do language handling for file paths.
     $settings['langcode'] = LANGUAGE_NONE;
     $settings['is_file'] = TRUE;
