@@ -313,10 +313,12 @@ function _pathologic_replace($matches) {
 
   // Let's see if we can split off a language prefix from the path.
   if (!$settings['is_file']) {
-    list($language_obj, $path) = language_url_split_prefix($parts['path'], language_list());
-    if ($language_obj) {
-      $parts['path'] = $path;
-      $parts['language_obj'] = $language_obj;
+    if (module_exists('locale')) {
+      list($language_obj, $path) = language_url_split_prefix($parts['path'], language_list());
+      if ($language_obj) {
+        $parts['path'] = $path;
+        $parts['language_obj'] = $language_obj;
+      }
     }
   }
   else {
