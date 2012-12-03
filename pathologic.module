@@ -186,9 +186,17 @@ function _pathologic_replace($matches) {
   if (
     // If parse_url() failed, give up.
     $parts === FALSE
-    // If there's a scheme part and it doesn't look useful, bail out.
-    // "files" and "internal" are for Path Filter compatibility.
-    || (isset($parts['scheme']) && !in_array($parts['scheme'], array('http', 'https', 'files', 'internal')))
+    || (
+      // If there's a scheme part and it doesn't look useful, bail out.
+      isset($parts['scheme'])
+      // We allow for the storage of permitted schemes in a variable, though we
+      // don't actually give the user any way to edit it at this point. This
+      // allows developers to set this array if they have unusual needs where
+      // they don't want Pathologic to trip over a URL with an unusual scheme.
+      // @see http://drupal.org/node/1834308
+      // "files" and "internal" are for Path Filter compatibility.
+      && !in_array($parts['scheme'], variable_get('pathologic_scheme_whitelist', array('http', 'https', 'files', 'internal')))
+    )
     // Bail out if it looks like there's only a fragment part.
     || (isset($parts['fragment']) && count($parts) === 1)
   ) {
