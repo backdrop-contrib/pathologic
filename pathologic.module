@@ -139,9 +139,9 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     // running as a CLI script, we might not be able to determine what that
     // root is. In that case, we'll use the Drupal root.
     // @see http://drupal.org/node/1780398
-    $filter->settings['docroot'] = (drupal_is_cli() || !isset($_SERVER) || !isset($_SERVER['DOCUMENT_ROOT']))
-      ? DRUPAL_ROOT
-      : $_SERVER['DOCUMENT_ROOT'];
+    $filter->settings['docroot'] = (drupal_is_cli() || empty($_SERVER['DOCUMENT_ROOT']))
+      ? realpath(DRUPAL_ROOT)
+      : realpath($_SERVER['DOCUMENT_ROOT']);
 
     $settings[$filter->format] = $filter->settings;
   }
@@ -215,11 +215,10 @@ function _pathologic_replace($matches) {
 
   // Check to see if we're dealing with a file. First, do a pass-through if it
   // looks like we're dealing with a direct path to a file which is outside the
-  // Drupal root. Use realpath() and the server's (?) docroot to iron out
-  // wrinkles to the file's actual path.
+  // Drupal root.
   // @see http://drupal.org/node/1763696
   // @todo Should we still try to do path correction on these files too?
-  $filepath = realpath($settings['current_settings']['docroot'] . '/' . $parts['path']);
+  $filepath = $settings['current_settings']['docroot'] . '/' . $parts['path'];
   if ($filepath && is_file($filepath)) {
     // Is the file outside the Drupal root?
     if (strpos($filepath, DRUPAL_ROOT) !== 0) {
