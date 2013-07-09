@@ -171,13 +171,20 @@ function _pathologic_replace($matches) {
   // guess… Note that we don't do the & thing here so that we can modify
   // $settings later and not have the changes be "permanent."
   $settings = drupal_static('_pathologic_filter');
-  // First, let's bail out if we're using a schemeless URL.
-  // @see http://drupal.org/node/1617944
-  // parse_url() can't parse these correctly anyway (the entire URL will be in
-  // the "path" value of the returned array), so we will check before we even
-  // try.
+  // If it appears the path is a scheme-less URL, prepend a scheme to it.
+  // parse_url() cannot properly parse scheme-less URLs. Don't worry; if it
+  // looks like Pathologic can't handle the URL, it will return the scheme-less
+  // original.
+  
+  // @see https://drupal.org/node/1617944
+  // @see https://drupal.org/node/2030789
   if (strpos($matches[2], '//') === 0) {
-    return $matches[0];
+    if (isset($_SERVER['https']) && strtolower($_SERVER['https']) === 'on') {
+      $matches[2] = 'https:' . $matches[2];
+    }
+    else {
+      $matches[2] = 'http:' . $matches[2];
+    }
   }
   // Now parse the URL after reverting HTML character encoding.
   // @see http://drupal.org/node/1672932
@@ -343,8 +350,6 @@ function _pathologic_replace($matches) {
       }
     }
   }
-
-
 
   // If we get to this point and $parts['path'] is now an empty string (which
   // will be the case if the path was originally just "/"), then we
