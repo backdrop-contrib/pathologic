@@ -164,6 +164,9 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
  * Process and replace paths. preg_replace_callback() callback.
  */
 function _pathologic_replace($matches) {
+  // Get the base path.
+  global $base_path;
+
   // Get the settings for the filter. Since we can't pass extra parameters
   // through to a callback called by preg_replace_callback(), there's basically
   // three ways to do this that I can determine: use eval() and friends; abuse
@@ -175,7 +178,6 @@ function _pathologic_replace($matches) {
   // parse_url() cannot properly parse scheme-less URLs. Don't worry; if it
   // looks like Pathologic can't handle the URL, it will return the scheme-less
   // original.
-  
   // @see https://drupal.org/node/1617944
   // @see https://drupal.org/node/2030789
   if (strpos($matches[2], '//') === 0) {
@@ -283,7 +285,7 @@ function _pathologic_replace($matches) {
     // e.g.: if our url is /foo/bar we'll mark this as a match for
     // http://example.com but want to keep searching and would prefer a match
     // to http://example.com/foo if that's configured as a local path
-    elseif (!isset($parts['host']) && (!isset($exploded['path']) || $exploded['path'] == '/')) {
+    elseif (!isset($parts['host']) && (!isset($exploded['path']) || $exploded['path'] === $base_path)) {
       $found = TRUE;
     }
   }
