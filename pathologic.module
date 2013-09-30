@@ -157,7 +157,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // is not perfect, but the callback will do more checking to make sure the
   // paths it receives make sense to operate upon, and just return the original
   // paths if not.
-  return preg_replace_callback('~(href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
+  return preg_replace_callback('~ (href|src|action|longdesc)="([^"]+)~i', '_pathologic_replace', $text);
 }
 
 /**
@@ -328,7 +328,7 @@ function _pathologic_replace($matches) {
 
   // If we didn't previously identify this as a file, check to see if the file
   // exists now that we have the correct path relative to DRUPAL_ROOT
-  if (!$settings['is_file']){
+  if (!$settings['is_file']) {
     $settings['is_file'] = !empty($parts['path']) && is_file(DRUPAL_ROOT . '/'. $parts['path']);
   }
 
@@ -432,7 +432,7 @@ function _pathologic_replace($matches) {
   // @see http://drupal.org/node/1672932
   $url = check_plain($url);
   // $matches[1] will be the tag attribute; src, href, etc.
-  return "{$matches[1]}=\"{$url}";
+  return " {$matches[1]}=\"{$url}";
 }
 
 /**
