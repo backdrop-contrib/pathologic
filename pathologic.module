@@ -75,6 +75,16 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
  * if language path prefixing (eg /ja/node/123) is in use. REMEMBER THIS IN THE
  * FUTURE, ALBRIGHT.
  *
+ * The below code uses the @ operator before parse_url() calls because in PHP
+ * 5.3.2 and earlier, parse_url() causes a warning of parsing fails. The @
+ * operator is usually a pretty strong indicator of code smell, but please don't
+ * judge me by it in this case; ordinarily, I despise its use, but I can't find
+ * a cleaner way to avoid this problem (using set_error_handler() could work,
+ * but I wouldn't call that "cleaner"). Fortunately, Drupal 8 will require at
+ * least PHP 5.3.5, so this mess doesn't have to spread into the D8 branch of
+ * Pathologic.
+ * @see https://drupal.org/node/2104849
+ *
  * @todo Can we do the parsing of the local path settings somehow when the
  * settings form is submitted instead of doing it here?
  */
@@ -82,7 +92,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // Get the base URL and explode it into component parts. We add these parts
   // to the exploded local paths settings later.
   global $base_url;
-  $base_url_parts = parse_url($base_url . '/');
+  $base_url_parts = @parse_url($base_url . '/');
   // Since we have to do some gnarly processing even before we do the *really*
   // gnarly processing, let's static save the settings - it'll speed things up
   // if, for example, we're importing many nodes, and not slow things down too
@@ -98,7 +108,7 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
       // @see http://drupal.org/node/1727492
       $local_paths = array_filter(array_map('trim', explode("\n", $filter->settings['local_paths'])));
       foreach ($local_paths as $local) {
-        $parts = parse_url($local);
+        $parts = @parse_url($local);
         // Okay, what the hellish "if" statement is doing below is checking to
         // make sure we aren't about to add a path to our array of exploded
         // local paths which matches the current "local" path. We consider it
@@ -192,7 +202,7 @@ function _pathologic_replace($matches) {
   // @see http://drupal.org/node/1672932
   $original_url = htmlspecialchars_decode($matches[2]);
   // …and parse the URL
-  $parts = parse_url($original_url);
+  $parts = @parse_url($original_url);
   // Do some more early tests to see if we should just give up now.
   if (
     // If parse_url() failed, give up.
@@ -229,7 +239,7 @@ function _pathologic_replace($matches) {
   if (isset($parts['scheme']) && $parts['scheme'] === 'files') {
     // Path Filter "files:" support. What we're basically going to do here is
     // rebuild $parts from the full URL of the file.
-    $new_parts = parse_url(file_create_url(file_default_scheme() . '://' . $parts['path']));
+    $new_parts = @parse_url(file_create_url(file_default_scheme() . '://' . $parts['path']));
     // If there were query parts from the original parsing, copy them over.
     if (!empty($parts['query'])) {
       $new_parts['query'] = $parts['query'];
@@ -422,7 +432,7 @@ function _pathologic_replace($matches) {
     // We don't want to convert the URL in that case. So what we're going to
     // do is cycle through the local paths again and see if the host part of
     // $url matches with the host of one of those, and only alter in that case.
-    $url_parts = parse_url($url);
+    $url_parts = @parse_url($url);
     if (!empty($url_parts['host']) && $url_parts['host'] === $settings['current_settings']['base_url_host']) {
       $url = _pathologic_url_to_protocol_relative($url);
     }
