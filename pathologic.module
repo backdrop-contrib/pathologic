@@ -205,8 +205,9 @@ function _pathologic_replace($matches) {
   $parts = @parse_url($original_url);
   // Do some more early tests to see if we should just give up now.
   if (
-    // If parse_url() failed, give up.
-    $parts === FALSE
+    // If parse_url() failed, $parts = FALSE. If the href was just "#", $parts
+    // is an empty array. Give up in both cases.
+    empty($parts)
     || (
       // If there's a scheme part and it doesn't look useful, bail out.
       isset($parts['scheme'])

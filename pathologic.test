@@ -127,7 +127,13 @@ class PathologicTestCase extends DrupalWebTestCase {
         $this->assertEqual(
           _pathologic_filter('<a href="#foo">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<a href="#foo">',
-          t('Fragment-only links. Clean URLs: !clean; protocol style: !ps.', $t10ns)
+          t('Fragment-only href. Clean URLs: !clean; protocol style: !ps.', $t10ns)
+        );
+        // @see https://drupal.org/node/2208223
+        $this->assertEqual(
+          _pathologic_filter('<a href="#">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
+          '<a href="#">',
+          t('Hash-only href. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
         $this->assertEqual(
           _pathologic_filter('<a href="foo/bar?baz=qux&amp;quux=quuux#quuuux">', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
