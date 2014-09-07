@@ -10,6 +10,22 @@
  */
 
 /**
+ * Implements hook_menu().
+ */
+function pathologic_menu() {
+  return array(
+    'admin/config/content/pathologic' => array(
+      'title' => 'Pathologic',
+      'description' => 'Configure how Pathologic adjusts link and image paths in content.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('pathologic_configuration_form'),
+      'file' => 'pathologic.admin.inc',
+      'access arguments' => array('administer filters'),
+    ),
+  );
+}
+
+/**
  * Implements hook_filter_info().
  */
 function pathologic_filter_info() {
