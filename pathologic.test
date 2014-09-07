@@ -223,7 +223,27 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Paths to files don\'t have ?q= when clean URLs are off')
     );
 
-
+    // Test our upgrade hook from 7.x-2.x to 7.x-3.x
+    $format = new stdClass();
+    $format->format = 'custom_format';
+    $format->name = 'Custom format';
+    $format->filters = array(
+      'pathologic' => array(
+        'status' => 1,
+        'settings' => array(
+          'protocol_style' => 'apples',
+          'local_paths' => 'bananas',
+        ),
+      ),
+    );
+    filter_format_save($format);
+    module_load_include('install', 'pathologic');
+    $sandbox = array();
+    pathologic_update_7300($sandbox);
+    $this->assertTrue(
+      variable_get('pathologic_protocol_style', FALSE) === 'apples' && variable_get('pathologic_local_paths', FALSE) === 'bananas',
+      t('Upgrade path from Pathologic 7.x-2.x')
+    );
   }
 }
 

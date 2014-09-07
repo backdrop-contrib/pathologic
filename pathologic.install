@@ -69,3 +69,29 @@ function pathologic_update_7200(&$sandbox) {
     }
   }
 }
+
+/**
+ * Convert per-format settings to site-wide settings.
+ */
+function pathologic_update_7300(&$sandbox) {
+  foreach (filter_formats() as $format) {
+    // @see http://drupal.org/node/1304930
+    if (empty($format->filters)) {
+      $format->filters = array();
+      // Add the filters
+      foreach (filter_list_format($format->format) as $filter_name => $filter) {
+        $format->filters[$filter_name] = (array)$filter;
+      }
+    }
+    if (isset($format->filters['pathologic']) && $format->filters['pathologic']['status']) {
+      if (!empty($format->filters['pathologic']['settings']['protocol_style'])) {
+        variable_set('pathologic_protocol_style', $format->filters['pathologic']['settings']['protocol_style']);
+      }
+      if (!empty($format->filters['pathologic']['settings']['local_paths'])) {
+        variable_set('pathologic_local_paths', $format->filters['pathologic']['settings']['local_paths']);
+      }
+      drupal_set_message(t('Pathologic 7.x-3.x now uses site-wide configuration instead of per-format configuration. The configuration from the %format format will be used for the site-wide settings. Please go to the new <a href="!path">Pathologic settings page</a> to adjust these settings if necessary.', array('%format' => $format->name, '!path' => url('admin/config/content/pathologic'))));
+      return;
+    }
+  }
+}
