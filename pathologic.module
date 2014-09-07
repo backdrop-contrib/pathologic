@@ -97,17 +97,21 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // Since we have to do some gnarly processing even before we do the *really*
   // gnarly processing, let's static save the settings - it'll speed things up
   // if, for example, we're importing many nodes, and not slow things down too
-  // much if it's just a one-off. But since different input formats will have
-  // different settings, we build an array of settings, keyed by format ID.
+  // much if it's just a one-off.
   $cached_settings = &drupal_static(__FUNCTION__, array());
-  if (!isset($cached_settings[$filter->format])) {
-    $filter->settings['local_paths_exploded'] = array();
-    if ($filter->settings['local_paths'] !== '') {
+  // We pass NULL as the $cache parameter from our tests; cheat and use this to
+  // always rebuild the settings, since we're constantly changing the config
+  // variables from within the tests.
+  if (empty($cached_settings) || $cache === NULL) {
+    $cached_settings['local_paths'] = variable_get('pathologic_local_paths', '');
+    $cached_settings['protocol_style'] = variable_get('pathologic_protocol_style', 'full');
+    $cached_settings['local_paths_exploded'] = array();
+    if ($cached_settings['local_paths'] !== '') {
       // Build an array of the exploded local paths for this format's settings.
       // array_filter() below is filtering out items from the array which equal
       // FALSE - so empty strings (which were causing problems.
       // @see http://drupal.org/node/1727492
-      $local_paths = array_filter(array_map('trim', explode("\n", $filter->settings['local_paths'])));
+      $local_paths = array_filter(array_map('trim', explode("\n", $cached_settings['local_paths'])));
       foreach ($local_paths as $local) {
         $parts = @parse_url($local);
         // Okay, what the hellish "if" statement is doing below is checking to
@@ -146,22 +150,18 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
           )
         ) {
           // Add it to the list.
-          $filter->settings['local_paths_exploded'][] = $parts;
+          $cached_settings['local_paths_exploded'][] = $parts;
         }
       }
     }
     // Now add local paths based on "this" server URL.
-    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+    $cached_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
+    $cached_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
     // We'll also just store the host part separately for easy access.
-    $filter->settings['base_url_host'] = $base_url_parts['host'];
-
-    $cached_settings[$filter->format] = $filter->settings;
+    $cached_settings['base_url_host'] = $base_url_parts['host'];
   }
   // Get the language code for the text we're about to process.
   $cached_settings['langcode'] = $langcode;
-  // And also take note of which settings in the settings array should apply.
-  $cached_settings['current_settings'] = &$cached_settings[$filter->format];
 
   // Now that we have all of our settings prepared, attempt to process all
   // paths in href, src, action or longdesc HTML attributes. The pattern below
@@ -260,7 +260,7 @@ function _pathologic_replace($matches) {
   // Cycle through local paths and find one with a host and a path that matches;
   // or just a host if that's all we have; or just a starting path if that's
   // what we have.
-  foreach ($cached_settings['current_settings']['local_paths_exploded'] as $exploded) {
+  foreach ($cached_settings['local_paths_exploded'] as $exploded) {
     // If a path is available in both…
     if (isset($exploded['path']) && isset($parts['path'])
       // And the paths match…
@@ -379,7 +379,7 @@ function _pathologic_replace($matches) {
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
       // Create an absolute URL if protocol_style is 'full' or 'proto-rel', but
       // not if it's 'path'.
-      'absolute' => $cached_settings['current_settings']['protocol_style'] !== 'path',
+      'absolute' => $cached_settings['protocol_style'] !== 'path',
       // If we seem to have found a language for the path, pass it along to
       // url(). Otherwise, ignore the 'language' parameter.
       'language' => isset($parts['language_obj']) ? $parts['language_obj'] : NULL,
@@ -428,14 +428,14 @@ function _pathologic_replace($matches) {
 
   // If we need to create a protocol-relative URL, then convert the absolute
   // URL we have now.
-  if ($cached_settings['current_settings']['protocol_style'] === 'proto-rel') {
+  if ($cached_settings['protocol_style'] === 'proto-rel') {
     // Now, what might have happened here is that url() returned a URL which
     // isn't on "this" server due to a hook_url_outbound_alter() implementation.
     // We don't want to convert the URL in that case. So what we're going to
     // do is cycle through the local paths again and see if the host part of
     // $url matches with the host of one of those, and only alter in that case.
     $url_parts = @parse_url($url);
-    if (!empty($url_parts['host']) && $url_parts['host'] === $cached_settings['current_settings']['base_url_host']) {
+    if (!empty($url_parts['host']) && $url_parts['host'] === $cached_settings['base_url_host']) {
       $url = _pathologic_url_to_protocol_relative($url);
     }
   }

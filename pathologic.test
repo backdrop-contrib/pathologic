@@ -42,10 +42,6 @@ class PathologicTestCase extends DrupalWebTestCase {
     // Build a phony filter
     $filter = new stdClass;
     $filter->callback = '_pathologic';
-    $filter->settings = array(
-      'protocol_style' => 'full',
-      'local_paths' => '',
-    );
     $filter->format = 0;
 
     // Build some paths to check against
@@ -94,7 +90,7 @@ class PathologicTestCase extends DrupalWebTestCase {
       variable_set('clean_url', $clean_url);
       // Run tests with absoulte filtering enabled and disabled
       foreach (array('full', 'proto-rel', 'path') as $protocol_style) {
-        $filter->settings['protocol_style'] = $protocol_style;
+        variable_set('pathologic_protocol_style', $protocol_style);
         $filter->format++;
         $paths = array();
         foreach ($test_paths as $path => $args) {
@@ -114,6 +110,8 @@ class PathologicTestCase extends DrupalWebTestCase {
           '<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>',
           t('Simple paths. Clean URLs: !clean; protocol style: !ps.', $t10ns)
         );
+        $this->pass(check_plain(_pathologic_filter('<a href="foo"><img src="foo/bar" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL)));
+        $this->pass(check_plain('<a href="' . $paths['foo'] . '"><img src="' . $paths['foo/bar'] . '" /></a>'));
         $this->assertEqual(
           _pathologic_filter('<form action="foo/bar?baz"><IMG LONGDESC="foo/bar?baz=qux" /></a>', $filter, NULL, LANGUAGE_NONE, NULL, NULL),
           '<form action="' . $paths['foo/bar?baz'] . '"><IMG LONGDESC="' . $paths['foo/bar?baz=qux'] . '" /></a>',
@@ -174,10 +172,8 @@ class PathologicTestCase extends DrupalWebTestCase {
     );
 
     // Test internal: and all base paths
-    $filter->settings = array(
-      'protocol_style' => 'full',
-      'local_paths' => "http://example.com/qux\nhttp://example.org\n/bananas",
-    );
+    variable_set('pathologic_protocol_style', 'full');
+    variable_set('pathologic_local_paths', "http://example.com/qux\nhttp://example.org\n/bananas");
     $filter->format++;
 
     // @see https://drupal.org/node/2030789
