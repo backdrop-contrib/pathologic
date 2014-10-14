@@ -52,25 +52,6 @@ function pathologic_filter_info() {
  * Settings callback for Pathologic.
  */
 function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, $filters) {
-  // We can't trust the settings_source setting because, on existing formats, it
-  // will be set to 'global' (the default value) when actually we want it to use
-  // the pre-existing settings, which we now call the 'local' settings. So let's
-  // get the settings as they are in {filter} without pre-processing. AFAICT,
-  // there's no API function to do this.
-  $orig_settings = db_select('filter', 'f')
-    ->fields('f', array('settings'))
-    ->condition('format', $format->format)
-    ->condition('name', 'pathologic')
-    ->execute()
-    ->fetchField();
-  if ($orig_settings) {
-    $orig_settings = unserialize($orig_settings);
-    $source_default = isset($orig_settings['settings_source']) ? $orig_settings['settings_source'] : 'local';
-  }
-  else {
-    $source_default = 'global';
-  }
-  
   // Puzzlingly, though we have a $form parameter, it has everything else's form
   // elements in it; we can't just modify it in place or return it modified. We
   // need to start a new form.
@@ -85,7 +66,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
     '#title' => t('Settings source'),
     '#description' => t('Select whether Pathologic should use the <a href="!config">global Pathologic settings</a> or custom &ldquo;local&rdquo; settings when filtering text in this text format.', array('!config' => url('admin/config/content/pathologic'))),
     '#weight' => 10,
-    '#default_value' => $source_default,
+    '#default_value' => _pathologic_get_real_settings_source($format->format),
     '#options' => array(
       'global' => t('Use global Pathologic settings'),
       'local' => t('Use custom settings for this text format'),
@@ -138,6 +119,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
  * settings form is submitted instead of doing it here?
  */
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
+  dsm(func_get_args());
   // Get the base URL and explode it into component parts. We add these parts
   // to the exploded local paths settings later.
   global $base_url;
@@ -149,6 +131,11 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // different settings, we build an array of settings, keyed by format ID.
   $cached_settings = &drupal_static(__FUNCTION__, array());
   if (!isset($cached_settings[$filter->format])) {
+    // Overwrite local settings with the global defaults if necessary
+    if (_pathologic_get_real_settings_source($filter->format) === 'global') {
+      $filter->settings['protocol_style'] = variable_get('pathologic_protocol_style', 'full');
+      $filter->settings['local_paths'] = variable_get('pathologic_local_paths', '');
+    }
     $filter->settings['local_paths_exploded'] = array();
     if ($filter->settings['local_paths'] !== '') {
       // Build an array of the exploded local paths for this format's settings.
@@ -508,3 +495,34 @@ function _pathologic_replace($matches) {
 function _pathologic_url_to_protocol_relative($url) {
   return preg_replace('~^https?://~', '//', $url);
 }
+
+/**
+ * Get the "real" settings_source value for a format.
+ *
+ * We can't trust the settings_source setting because, on existing formats, it
+ * will be set to 'global' (the default value) when actually we want it to use
+ * the pre-existing settings, which we now call the 'local' settings. So let's
+ * get the settings as they are in {filter} without pre-processing. AFAICT,
+ * there's no API function to do this.
+ *
+ * @param $format_name
+ *   The machine name of the format.
+ * @return
+ *   Either "global" or "local" as appropriate.
+ */
+function _pathologic_get_real_settings_source($format_name) {
+  $orig_settings = db_select('filter', 'f')
+    ->fields('f', array('settings'))
+    ->condition('format', $format_name)
+    ->condition('name', 'pathologic')
+    ->execute()
+    ->fetchField();
+  if ($orig_settings) {
+    $orig_settings = unserialize($orig_settings);
+    return isset($orig_settings['settings_source']) ? $orig_settings['settings_source'] : 'local';
+  }
+  else {
+    return 'global';
+  }
+}
+
