@@ -217,6 +217,17 @@ class PathologicTestCase extends DrupalWebTestCase {
       t('Paths to files don\'t have ?q= when clean URLs are off')
     );
 
+    $format_id = _pathologic_build_format(array(
+      'protocol_style' => 'rel',
+      'settings_source' => 'global',
+    ));
+    variable_set('pathologic_protocol_style', 'proto-rel');
+    variable_set('pathologic_local_paths', 'http://example.com/');
+    $this->assertEqual(
+      check_markup('<img src="http://example.com/foo.jpeg" />', $format_id),
+      '<img src="' . _pathologic_url_to_protocol_relative(_pathologic_content_url('foo.jpeg', array('absolute' => TRUE))) . '" />',
+      t('Use global settings when so configured on the format')
+    );
   }
 }
 
