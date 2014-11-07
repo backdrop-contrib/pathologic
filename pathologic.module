@@ -119,7 +119,6 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
  * settings form is submitted instead of doing it here?
  */
 function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_id) {
-  dsm(func_get_args());
   // Get the base URL and explode it into component parts. We add these parts
   // to the exploded local paths settings later.
   global $base_url;
