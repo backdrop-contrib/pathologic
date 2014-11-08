@@ -3,4 +3,5 @@ description = Helps avoid broken links and incorrect paths in content.
 package = "Input filters"
 dependencies[] = filter
 core = 7.x
+configure = admin/config/content/pathologic
 files[] = pathologic.test
