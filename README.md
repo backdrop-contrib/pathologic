@@ -1,6 +1,6 @@
 # Pathologic
 
-Pathologic is an input filter which can correct paths in links and images in your Drupal content in situations which would otherwise cause them to “break;” for example, if the URL of the site changes, or the content was moved to a different server. Pathologic can also solve the problem of missing images and broken links in your site’s RSS feeds. See more example use cases on the documentation page.
+Pathologic is an input filter which can correct paths in links and images in your Backdrop content in situations which would otherwise cause them to “break;” for example, if the URL of the site changes, or the content was moved to a different server. Pathologic can also solve the problem of missing images and broken links in your site’s RSS feeds. See more example use cases on the documentation page.
 
 Pathologic is designed to be a simple, set-it-and-forget-it utility. You don't need to enter any special “tags,” path prefixes, or other non-content noise into your content to trigger Pathologic to work; it finds paths it can manage in your content automatically.
 
