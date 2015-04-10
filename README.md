@@ -8,7 +8,7 @@ As Pathologic is an input filter, installation and configuration is a little mor
 
 Want to know more? Here's some articles about Pathologic by others:
 
-* [Module Monday](http://www.lullabot.com/blog/module-monday-pathologic): Pathologic by Jeff Eaton of Lullabot
+* [Module Monday: Pathologic](http://www.lullabot.com/blog/module-monday-pathologic) by Jeff Eaton of Lullabot
 * [How-to screencast](http://codekarate.com/daily-dose-of-drupal/drupal-7-pathologic-module) by Shane Thomas of Code Karate
 * [Drupal Pathologic Module Best Solution to Get Rid of Broken Links](http://deepubalan.com/blog/2013/06/22/get-rid-of-broken-links-using-drupal-pathologic-module/) by Deepu Balan
 * [Fix broken content links with the Pathologic Module](https://swsblog.stanford.edu/blog/fix-broken-content-links-pathologic-module) by Caryl J Westerberg of Stanford University
