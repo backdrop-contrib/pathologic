@@ -6,66 +6,23 @@
  */
 
 /**
- * Re-enable Pathologic under Drupal 7, preserving settings from Drupal 6.
+ * Move general settings from variables to config.
  */
-function pathologic_update_7000($sandbox) {
-  // Make sure {d6_upgrade_filter} exists. It won't exist for people upgrading
-  // from beta versions of the D7 version of Pathologic on native D7 sites (not
-  // upgraded from D6).
-  if (db_table_exists('d6_upgrade_filter')) {
-    // Get all Pathologic data from {d6_upgrade_filter}.
-    $rez = db_select('d6_upgrade_filter', 'dup')
-      ->fields('dup')
-      ->condition('module', 'pathologic')
-      ->execute();
-    while ($instance = $rez->fetchObject()) {
-      // Load the format
-      if ($format = filter_format_load($instance->format)) {
-        // Load filters.
-        $format->filters = array();
-        // Add the filters
-        foreach (filter_list_format($instance->format) as $filter_name => $filter) {
-          $format->filters[$filter_name] = (array)$filter;
-        }
-        // Add Pathologic
-        $format->filters['pathologic'] = array(
-          'weight' => $instance->weight,
-          'status' => 1,
-          'settings' => array(
-            'absolute' => variable_get('filter_pathologic_absolute_' . $instance->format, TRUE),
-            'local_paths' => variable_get('filter_pathologic_local_paths_' . $instance->format, ''),
-          ),
-        );
-        // Save the format
-        filter_format_save($format);
-        // Unset old variables
-        variable_del('filter_pathologic_absolute_' . $instance->format);
-        variable_del('filter_pathologic_local_paths_' . $instance->format);
-      }
-    }
-    // Delete Pathologic data from {d6_upgrade_filter}…?
-    // No, maybe we don't want to actually do that…?
-  }
+function pathologic_update_1000() {
+  $config = config('pathologic.settings');
+  
+  $config->set('protocol_style', update_variable_get('pathologic_protocol_style', 'full'));
+  $config->set('local_paths', update_variable_get('pathologi_local_paths', ''));
+
+  update_variable_del('pathologic_protocol_style');
+  update_variable_del('pathologic_local_paths');
+
+  $config->save();
 }
 
 /**
- * Convert obsolete "absolute" setting to modern "protocol_style" setting for
- * each filter instance.
+ * Implements hook_update_last_removed().
  */
-function pathologic_update_7200(&$sandbox) {
-  foreach (filter_formats() as $format) {
-    // @see http://drupal.org/node/1304930
-    if (empty($format->filters)) {
-      $format->filters = array();
-      // Add the filters
-      foreach (filter_list_format($format->format) as $filter_name => $filter) {
-        $format->filters[$filter_name] = (array)$filter;
-      }
-    }
-    if (isset($format->filters['pathologic'])) {
-      $format->filters['pathologic']['settings']['protocol_style'] = $format->filters['pathologic']['settings']['absolute'] ? 'full' : 'path';
-      unset($format->filters['pathologic']['settings']['absolute']);
-      filter_format_save($format);
-    }
-  }
+function pathologic_update_last_removed() {
+  return 7200;
 }

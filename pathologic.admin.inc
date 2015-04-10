@@ -9,22 +9,44 @@
  * Form callback for the Pathologic configuration form.
  */
 function pathologic_configuration_form($form, $form_state) {
+  $config = config('pathologic.settings');
   $form['reminder'] = array(
     '#type' => 'markup',
-    '#markup' => '<p>' . t('Reminder: The settings on this form only affect text formats for which Pathologic is configured to use the global Pathologic settings; if it&rsquo;s configured to use per-format settings, these settings will have no effect. If you have upgraded to the current 7.x-3.x version of Pathologic from version 7.x-2.x, all of your current formats will use their existing per-format settings by default, so that behavior will be the same as the 7.x-2.x version until they are configured to use the global settings instead. Please <a href="!docs">consult Pathologic&rsquo;s documentation</a> for a step-by-step guide to configuring Pathologic.', array('!docs' => 'http://drupal.org/node/257026')) . '</p>',
+    '#markup' => '<p>' . t('Reminder: The settings on this form only affect text formats for which Pathologic is configured to use the global Pathologic settings; if it&rsquo;s configured to use per-format settings, these settings will have no effect. Please <a href="!docs">consult Pathologic&rsquo;s documentation</a> for a step-by-step guide to configuring Pathologic.', array('!docs' => 'http://drupal.org/node/257026')) . '</p>',
     '#weight' => 0,
   );
   $config_form = _pathologic_configuration_form(array(
-    'protocol_style' => variable_get('pathologic_protocol_style', 'full'),
-    'local_paths' => variable_get('pathologic_local_paths', ''),
+    'protocol_style' => $config->get('protocol_style'),
+    'local_paths' => $config->get('local_paths'),
   ));
   $form['pathologic_protocol_style'] = $config_form['protocol_style'];
   $form['pathologic_local_paths'] = $config_form['local_paths'];
-  return system_settings_form($form);
+  
+  $form['actions']['#type'] = 'actions';
+  $form['actions']['submit'] = array(
+    '#type'   => 'submit',
+    '#value'  => t('Save configuration'),
+  );
+
+  return $form;
 }
 
 /**
- * Common elements for the Drupal configuration form.
+ * Submit handler for pathologic_configuration_form().
+ */
+function pathologic_configuration_form_submit($form, &$form_state) {
+  $config = config('pathologic.settings');
+  $values = $form_state['values'];
+
+  $config->set('protocol_style', $form_state['values']['pathologic_protocol_style']);
+  $config->set('local_paths', $form_state['values']['pathologic_local_paths']);
+  $config->save();
+
+  backdrop_set_message(t('The configuration options have been saved.'));
+}
+
+/**
+ * Common elements for the Backdrop configuration form.
  *
  * This reduces redundancy in code for form elements that will appear on both
  * the global settings form and the per-format filter settings form.

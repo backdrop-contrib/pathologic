@@ -2,12 +2,23 @@
 
 /**
  * @file
- * Pathologic text filter for Drupal.
+ * Pathologic text filter for Backdrop.
  *
  * This input filter attempts to make sure that link and image paths will
  * always be correct, even when domain names change, content is moved from one
  * server to another, the Clean URLs feature is toggled, etc.
  */
+
+/**
+* Implements hook_config_info().
+*/
+function pathologic_config_info() {
+  $prefixes['migrate.settings'] = array(
+    'label' => t('Main settings'),
+    'group' => t('Pathologic'),
+  );
+  return $prefixes;
+}
 
 /**
  * Implements hook_menu().
@@ -17,7 +28,7 @@ function pathologic_menu() {
     'admin/config/content/pathologic' => array(
       'title' => 'Pathologic',
       'description' => 'Configure how Pathologic adjusts link and image paths in content.',
-      'page callback' => 'drupal_get_form',
+      'page callback' => 'backdrop_get_form',
       'page arguments' => array('pathologic_configuration_form'),
       'file' => 'pathologic.admin.inc',
       'access arguments' => array('administer filters'),
@@ -51,7 +62,7 @@ function pathologic_filter_info() {
 /**
  * Settings callback for Pathologic.
  */
-function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, $filters) {
+function _pathologic_settings($form, &$form_state, $filter, $format) {
   // Puzzlingly, though we have a $form parameter, it has everything else's form
   // elements in it; we can't just modify it in place or return it modified. We
   // need to start a new form.
@@ -110,7 +121,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format, $defaults, 
  * operator is usually a pretty strong indicator of code smell, but please don't
  * judge me by it in this case; ordinarily, I despise its use, but I can't find
  * a cleaner way to avoid this problem (using set_error_handler() could work,
- * but I wouldn't call that "cleaner"). Fortunately, Drupal 8 will require at
+ * but I wouldn't call that "cleaner"). Fortunately, Backdrop 8 will require at
  * least PHP 5.3.5, so this mess doesn't have to spread into the D8 branch of
  * Pathologic.
  * @see https://drupal.org/node/2104849
@@ -122,18 +133,19 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // Get the base URL and explode it into component parts. We add these parts
   // to the exploded local paths settings later.
   global $base_url;
+  $config = config('pathologic.settings');
   $base_url_parts = @parse_url($base_url . '/');
   // Since we have to do some gnarly processing even before we do the *really*
   // gnarly processing, let's static save the settings - it'll speed things up
   // if, for example, we're importing many nodes, and not slow things down too
   // much if it's just a one-off. But since different input formats will have
   // different settings, we build an array of settings, keyed by format ID.
-  $cached_settings = &drupal_static(__FUNCTION__, array());
-  if (!isset($cached_settings[$filter->format])) {
+  $cached_settings = &backdrop_static(__FUNCTION__, array());
+  if (!isset($cached_settings[$format->format])) {
     // Overwrite local settings with the global defaults if necessary
-    if (_pathologic_get_real_settings_source($filter->format) === 'global') {
-      $filter->settings['protocol_style'] = variable_get('pathologic_protocol_style', 'full');
-      $filter->settings['local_paths'] = variable_get('pathologic_local_paths', '');
+    if (_pathologic_get_real_settings_source($format->format) === 'global') {
+      $filter->settings['protocol_style'] = $config->get('protocol_style');
+      $filter->settings['local_paths'] = $config->get('local_paths');
     }
     $filter->settings['local_paths_exploded'] = array();
     if ($filter->settings['local_paths'] !== '') {
@@ -190,12 +202,12 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
     // We'll also just store the host part separately for easy access.
     $filter->settings['base_url_host'] = $base_url_parts['host'];
 
-    $cached_settings[$filter->format] = $filter->settings;
+    $cached_settings[$format->format] = $filter->settings;
   }
   // Get the language code for the text we're about to process.
   $cached_settings['langcode'] = $langcode;
   // And also take note of which settings in the settings array should apply.
-  $cached_settings['current_settings'] = &$cached_settings[$filter->format];
+  $cached_settings['current_settings'] = &$cached_settings[$format->format];
 
   // Now that we have all of our settings prepared, attempt to process all
   // paths in href, src, action or longdesc HTML attributes. The pattern below
@@ -215,10 +227,10 @@ function _pathologic_replace($matches) {
   // Get the settings for the filter. Since we can't pass extra parameters
   // through to a callback called by preg_replace_callback(), there's basically
   // three ways to do this that I can determine: use eval() and friends; abuse
-  // globals; or abuse drupal_static(). The latter is the least offensive, I
+  // globals; or abuse backdrop_static(). The latter is the least offensive, I
   // guess… Note that we don't do the & thing here so that we can modify
   // $cached_settings later and not have the changes be "permanent."
-  $cached_settings = drupal_static('_pathologic_filter');
+  $cached_settings = backdrop_static('_pathologic_filter');
   // If it appears the path is a scheme-less URL, prepend a scheme to it.
   // parse_url() cannot properly parse scheme-less URLs. Don't worry; if it
   // looks like Pathologic can't handle the URL, it will return the scheme-less
@@ -252,7 +264,7 @@ function _pathologic_replace($matches) {
       // they don't want Pathologic to trip over a URL with an unusual scheme.
       // @see http://drupal.org/node/1834308
       // "files" and "internal" are for Path Filter compatibility.
-      && !in_array($parts['scheme'], variable_get('pathologic_scheme_whitelist', array('http', 'https', 'files', 'internal')))
+      && !in_array($parts['scheme'], config_get('pathologic.settings', 'scheme_whitelist'))
     )
     // Bail out if it looks like there's only a fragment part.
     || (isset($parts['fragment']) && count($parts) === 1)
@@ -310,7 +322,7 @@ function _pathologic_replace($matches) {
       // http://foo/bar/baz; or the "Also local" was something like /bar and
       // this URL is something like /bar/baz. And we only care about the /baz
       // part.
-      $parts['path'] = drupal_substr($parts['path'], drupal_strlen($exploded['path']));
+      $parts['path'] = backdrop_substr($parts['path'], backdrop_strlen($exploded['path']));
       $found = TRUE;
       // Break out of the foreach loop
       break;
@@ -350,7 +362,7 @@ function _pathologic_replace($matches) {
   // from the array. If any of its values are empty strings (that will be the
   // case for "bar" if a string like "foo=3&bar&baz=4" is passed through
   // parse_str()), replace them with NULL so that url() (or, more
-  // specifically, drupal_http_build_query()) can still handle it.
+  // specifically, backdrop_http_build_query()) can still handle it.
   if (isset($parts['query'])) {
     parse_str($parts['query'], $parts['qparts']);
     foreach ($parts['qparts'] as $key => $value) {
@@ -373,9 +385,9 @@ function _pathologic_replace($matches) {
   }
 
   // If we didn't previously identify this as a file, check to see if the file
-  // exists now that we have the correct path relative to DRUPAL_ROOT
+  // exists now that we have the correct path relative to BACKDROP_ROOT
   if (!$cached_settings['is_file']) {
-    $cached_settings['is_file'] = !empty($parts['path']) && is_file(DRUPAL_ROOT . '/'. $parts['path']);
+    $cached_settings['is_file'] = !empty($parts['path']) && is_file(BACKDROP_ROOT . '/'. $parts['path']);
   }
 
   // Okay, deal with language stuff.
@@ -390,7 +402,8 @@ function _pathologic_replace($matches) {
     if (module_exists('locale')) {
       // Sometimes this file will be require_once-d by the locale module before
       // this point, and sometimes not. We require_once it ourselves to be sure.
-      require_once DRUPAL_ROOT . '/includes/language.inc';
+      require_once BACKDROP_ROOT . '/core/includes/locale.inc';
+      require_once BACKDROP_ROOT . '/core/includes/language.inc';
       list($language_obj, $path) = language_url_split_prefix($parts['path'], language_list());
       if ($language_obj) {
         $parts['path'] = $path;
@@ -429,7 +442,7 @@ function _pathologic_replace($matches) {
 
   // Now alter!
   // @see http://drupal.org/node/1762022
-  drupal_alter('pathologic', $url_params, $parts, $cached_settings);
+  backdrop_alter('pathologic', $url_params, $parts, $cached_settings);
 
   // If any of the alter hooks asked us to just pass along the original URL,
   // then do so.
@@ -484,7 +497,7 @@ function _pathologic_replace($matches) {
 /**
  * Convert a full URL with a protocol to a protocol-relative URL.
  *
- * As the Drupal core url() function doesn't support protocol-relative URLs, we
+ * As the Backdrop core url() function doesn't support protocol-relative URLs, we
  * work around it by just creating a full URL and then running it through this
  * to strip off the protocol.
  *
@@ -510,15 +523,10 @@ function _pathologic_url_to_protocol_relative($url) {
  *   Either "global" or "local" as appropriate.
  */
 function _pathologic_get_real_settings_source($format_name) {
-  $orig_settings = db_select('filter', 'f')
-    ->fields('f', array('settings'))
-    ->condition('format', $format_name)
-    ->condition('name', 'pathologic')
-    ->execute()
-    ->fetchField();
-  if ($orig_settings) {
-    $orig_settings = unserialize($orig_settings);
-    return isset($orig_settings['settings_source']) ? $orig_settings['settings_source'] : 'local';
+  $filter_config = config('filter.format.' . $format_name);
+  $config = $filter_config->get('filters.pathologic');
+  if ($config) {
+    return isset($config['settings']['settings_source']) ? $config['settings']['settings_source'] : 'local';
   }
   else {
     return 'global';

@@ -13,15 +13,7 @@
  *
  * Note to self: The method to pass bits of text through are fail() or pass().
  */
-class PathologicTestCase extends DrupalWebTestCase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Pathologic path filtering',
-      'description' => 'Test Pathologic&rsquo;s path translation and conversion.',
-      'group' => 'Filter',
-    );
-  }
-
+class PathologicTestCase extends BackdropWebTestCase {
   function setUp() {
     parent::setUp('pathologic');
   }

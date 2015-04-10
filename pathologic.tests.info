@@ -1,0 +1,5 @@
+[PathologicTestCase]
+name = Pathologic path filtering
+description = Test Pathologic's path translation and conversion.
+group = Filter
+file = pathologic.test
