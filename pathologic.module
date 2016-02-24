@@ -395,7 +395,7 @@ function _pathologic_replace($matches) {
     // If we're linking to a file, use a fake LANGUAGE_NONE language object.
     // Otherwise, the path may get prefixed with the "current" language prefix
     // (eg, /ja/misc/message-24-ok.png)
-    $parts['language_obj'] = (object) array('language' => LANGUAGE_NONE, 'prefix' => '');
+    $parts['language_obj'] = (object) array('langcode' => LANGUAGE_NONE, 'prefix' => '');
   }
   else {
     // Let's see if we can split off a language prefix from the path.
