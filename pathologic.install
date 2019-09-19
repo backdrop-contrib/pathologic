@@ -6,6 +6,18 @@
  */
 
 /**
+ * Add missing config setting.
+ */
+function pathologic_update_1001() {
+  $config = config('pathologic.settings');
+
+  if (empty($config->get('scheme_whitelist'))) {
+    $config->set('scheme_whitelist', array('http', 'https', 'files', 'internal'));
+    $config->save();
+  }
+}
+
+/**
  * Move general settings from variables to config.
  */
 function pathologic_update_1000() {
