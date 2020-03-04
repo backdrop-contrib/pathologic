@@ -27,6 +27,7 @@ complete text.
 ## Current Maintainers
 
  * [Jerome Danthinne](https://github.com/jdanthinne/)
+ * [BWPanda](https://github.com/BWPanda)
 
 ## Credits
 
