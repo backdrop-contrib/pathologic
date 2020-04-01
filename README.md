@@ -6,6 +6,8 @@ Pathologic is designed to be a simple, set-it-and-forget-it utility. You don't n
 
 As Pathologic is an input filter, installation and configuration is a little more difficult than it is for a standard module — but it's still not that tough, if you follow the full installation and configuration guide here.
 
+Backdrop's Pathologic module is based on the Drupal module's 7.x-3.x branch.
+
 Want to know more? Here's some articles about Pathologic by others:
 
 * [Module Monday: Pathologic](http://www.lullabot.com/blog/module-monday-pathologic) by Jeff Eaton of Lullabot
@@ -19,11 +21,6 @@ Want to know more? Here's some articles about Pathologic by others:
 For full installation and configuration instructions, please see this page in
 the Drupal online manual: http://drupal.org/node/257026
 
-## License
-
-This project is GPL v2 software. See the LICENSE.txt file in this directory for
-complete text.
-
 ## Current Maintainers
 
  * [Jerome Danthinne](https://github.com/jdanthinne/)
@@ -33,3 +30,8 @@ complete text.
 
 This module was originally written for Drupal by
 [Garrett Albright](https://www.drupal.org/u/garrett-albright).
+
+## License
+
+This project is GPL v2 software. See the LICENSE.txt file in this directory for
+complete text.
