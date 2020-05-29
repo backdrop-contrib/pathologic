@@ -92,7 +92,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format) {
     '#description' => t('These settings are ignored if &ldquo;Use global Pathologic settings&rdquo; is selected above.'),
     '#states' => array(
       'visible' => array(
-        ':input[name="filters[pathologic][settings][settings_source]"]' => array('value' => 'local'),
+        ':input[name="settings_source"]' => array('value' => 'local'),
       ),
     ),
   );
