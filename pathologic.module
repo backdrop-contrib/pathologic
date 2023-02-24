@@ -415,7 +415,7 @@ function _pathologic_replace($matches) {
   $url_params = array(
     'path' => $parts['path'],
     'options' => array(
-      'query' => $parts['qparts'],
+      'query' => isset($parts['qparts']) && is_array($parts['qparts']) ? $parts['qparts'] : array(),
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
       // Create an absolute URL if protocol_style is 'full' or 'proto-rel', but
       // not if it's 'path'.
