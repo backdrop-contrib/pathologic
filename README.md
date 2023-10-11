@@ -24,7 +24,6 @@ the Drupal online manual: http://drupal.org/node/257026
 ## Current Maintainers
 
  * [Jerome Danthinne](https://github.com/jdanthinne/)
- * [BWPanda](https://github.com/BWPanda)
 
 ## Credits
 
