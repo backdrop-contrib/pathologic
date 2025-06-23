@@ -1,19 +1,15 @@
 <?php
+
 /**
  * @file
  * .install file for Pathologic.
  */
 
 /**
- * Add missing config setting.
+ * Implements hook_update_last_removed().
  */
-function pathologic_update_1001() {
-  $config = config('pathologic.settings');
-
-  if (empty($config->get('scheme_whitelist'))) {
-    $config->set('scheme_whitelist', array('http', 'https', 'files', 'internal'));
-    $config->save();
-  }
+function pathologic_update_last_removed() {
+  return 7200;
 }
 
 /**
@@ -32,8 +28,12 @@ function pathologic_update_1000() {
 }
 
 /**
- * Implements hook_update_last_removed().
+ * Add missing config setting.
  */
-function pathologic_update_last_removed() {
-  return 7200;
+function pathologic_update_1001() {
+  $config = config('pathologic.settings');
+  if (empty($config->get('scheme_whitelist'))) {
+    $config->set('scheme_whitelist', array('http', 'https', 'files', 'internal'));
+  }
+  $config->save();
 }
