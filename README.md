@@ -23,12 +23,12 @@ the Drupal online manual: http://drupal.org/node/257026
 
 ## Current Maintainers
 
- * [Jerome Danthinne](https://github.com/jdanthinne/)
+ * [Laryn Kragt Bakker](https://github.com/laryn).
 
 ## Credits
 
-This module was originally written for Drupal by
-[Garrett Albright](https://www.drupal.org/u/garrett-albright).
+ * Ported to Backdrop by [Jerome Danthinne](https://github.com/jdanthinne/).
+ * Originally written for Drupal by [Garrett Albright](https://www.drupal.org/u/garrett-albright).
 
 ## License
 
