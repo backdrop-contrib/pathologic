@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Hooks provided by Pathologic.
@@ -20,7 +19,7 @@
  * new URL. Modules can alter the values that Pathologic is about to send to
  * url(), or even stop Pathologic from altering a URL entirely.
  *
- * @param $url_params
+ * @param array $url_params
  *   An array with 'path' and 'options' values, which correspond to the $path
  *   and $options parameters of the url() function. The 'options' array has an
  *   extra parameter labeled 'use_original' which is set to FALSE by default.
@@ -29,14 +28,14 @@
  *   path it found in the content instead of calling url() and generating a new
  *   one. Thus, it provides a way for modules to halt the alteration of paths
  *   which Pathologic has incorrectly decided should be altered.
- * @param $parts
+ * @param array $parts
  *   This array contains the result of running parse_url() on the path that
  *   Pathologic found in content, though Pathologic likely altered some of the
  *   values in this array since. It contains another parameter, 'original',
  *   which contains the original URL Pathologic found in the content, unaltered.
  *   You should not alter this value in any way; to alter how Pathologic
  *   constructs the new URL, alter $url_params instead.
- * @param $settings
+ * @param array $settings
  *   This contains the settings Pathologic is using to decide how to alter the
  *   URL; some settings are from the graphical filter form and alterable by the
  *   user, while others are determined programmatically. If you're looking for
@@ -49,7 +48,7 @@
  * @see pathologic_replace()
  * @see http://drupal.org/node/1762022
  */
-function hook_pathologic_alter(&$url_params, $parts, $settings) {
+function hook_pathologic_alter(array &$url_params, array $parts, array $settings) {
   // If we're linking to the "bananas" subdirectory or something under it, then
   // have Pathologic pass through the original URL, without altering it.
   if (preg_match('~^bananas(/.*)?$~', $url_params['path'])) {

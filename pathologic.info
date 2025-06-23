@@ -1,8 +1,12 @@
+type = module
 name = Pathologic
 description = Helps avoid broken links and incorrect paths in content.
 package = "Input filters"
-dependencies[] = filter
 backdrop = 1.x
+php = 7.1
+
 configure = admin/config/content/pathologic
-type = module
-version = 1.x-1.0.3
+
+dependencies[] = filter
+
+maintainers[laryn] = Laryn Kragt Bakker

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * .install file for Pathologic.
@@ -22,7 +21,7 @@ function pathologic_update_1001() {
  */
 function pathologic_update_1000() {
   $config = config('pathologic.settings');
-  
+
   $config->set('protocol_style', update_variable_get('pathologic_protocol_style', 'full'));
   $config->set('local_paths', update_variable_get('pathologi_local_paths', ''));
 

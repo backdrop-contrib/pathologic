@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Pathologic behavior testing.
@@ -18,8 +17,8 @@ class PathologicTestCase extends BackdropWebTestCase {
     parent::setUp('pathologic');
   }
 
-  function testPathologic() {
-    // Start by testing our function to build protocol-relative URLs
+  public function testPathologic() {
+    // Start by testing our function to build protocol-relative URLs.
     $this->assertEqual(
       _pathologic_url_to_protocol_relative('http://example.com/foo/bar'),
       '//example.com/foo/bar',
@@ -31,23 +30,23 @@ class PathologicTestCase extends BackdropWebTestCase {
       t('Protocol-relative URL creation with https:// URL')
     );
 
-    // Build some paths to check against
+    // Build some paths to check against.
     $test_paths = array(
       'foo' => array(
         'path' => 'foo',
-        'opts' => array()
+        'opts' => array(),
       ),
       'foo/bar' => array(
         'path' => 'foo/bar',
-        'opts' => array()
+        'opts' => array(),
       ),
       'foo/bar?baz' => array(
         'path' => 'foo/bar',
-        'opts' => array('query' => array('baz' => NULL))
+        'opts' => array('query' => array('baz' => NULL)),
       ),
       'foo/bar?baz=qux' => array(
         'path' => 'foo/bar',
-        'opts' => array('query' => array('baz' => 'qux'))
+        'opts' => array('query' => array('baz' => 'qux')),
       ),
       'foo/bar#baz' => array(
         'path' => 'foo/bar',
@@ -72,10 +71,10 @@ class PathologicTestCase extends BackdropWebTestCase {
       ),
     );
 
-    // Run tests with clean URLs both enabled and disabled
+    // Run tests with clean URLs both enabled and disabled.
     foreach (array(TRUE, FALSE) as $clean_url) {
-      variable_set('clean_url', $clean_url);
-      // Run tests with absoulte filtering enabled and disabled
+      config_set('system.core', 'clean_url', $clean_url);
+      // Run tests with absoulte filtering enabled and disabled.
       foreach (array('full', 'proto-rel', 'path') as $protocol_style) {
         $format_id = _pathologic_build_format(array('protocol_style' => $protocol_style, 'settings_source' => 'local'));
         $paths = array();
@@ -138,13 +137,13 @@ class PathologicTestCase extends BackdropWebTestCase {
     global $base_path;
     $this->assertEqual(
       check_markup('<a href="' . $base_path . 'foo">bar</a>', $format_id),
-      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) . '">bar</a>',
       t('Paths beginning with $base_path (like WYSIWYG editors like to make)')
     );
     global $base_url;
     $this->assertEqual(
       check_markup('<a href="' . $base_url . '/foo">bar</a>', $format_id),
-      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) .'">bar</a>',
+      '<a href="' . _pathologic_content_url('foo', array('absolute' => FALSE)) . '">bar</a>',
       t('Paths beginning with $base_url')
     );
 
@@ -155,7 +154,7 @@ class PathologicTestCase extends BackdropWebTestCase {
       t('Off-site schemeless URLs (//example.com/foo) ignored')
     );
 
-    // Test internal: and all base paths
+    // Test internal: and all base paths.
     $format_id = _pathologic_build_format(array(
       'protocol_style' => 'full',
       'local_paths' => "http://example.com/qux\nhttp://example.org\n/bananas",
@@ -202,19 +201,21 @@ class PathologicTestCase extends BackdropWebTestCase {
 
     // Test paths to existing files when clean URLs are disabled.
     // @see http://drupal.org/node/1672430
-    variable_set('clean_url', FALSE);
+    config_set('system.core', 'clean_url', FALSE);
     $filtered_tag = check_markup('<img src="misc/druplicon.png" />', $format_id);
     $this->assertTrue(
       strpos($filtered_tag, 'q=') === FALSE,
-      t('Paths to files don\'t have ?q= when clean URLs are off')
+      t("Paths to files don't have ?q= when clean URLs are off")
     );
 
     $format_id = _pathologic_build_format(array(
       'protocol_style' => 'rel',
       'settings_source' => 'global',
     ));
-    variable_set('pathologic_protocol_style', 'proto-rel');
-    variable_set('pathologic_local_paths', 'http://example.com/');
+    $config = config('pathologic.settings');
+    $config->set('protocol_style', 'proto-rel');
+    $config->set('local_paths', 'http://example.com/');
+    $config->save();
     $this->assertEqual(
       check_markup('<img src="http://example.com/foo.jpeg" />', $format_id),
       '<img src="' . _pathologic_url_to_protocol_relative(_pathologic_content_url('foo.jpeg', array('absolute' => TRUE))) . '" />',
@@ -280,12 +281,12 @@ function _pathologic_build_format($settings) {
 }
 
 /**
- * Implements hook_pathologic_alter(), for testing that functionality.
+ * Implements hook_pathologic_alter() for testing that functionality.
  */
 function pathologic_pathologic_alter(&$url_params, $parts, $settings) {
   if (is_array($parts['qparts']) && isset($parts['qparts']['test'])) {
     if ($parts['qparts']['test'] === 'add_foo_qpart') {
-      // Add a "foo" query part
+      // Add a "foo" query part.
       if (empty($url_params['options']['query'])) {
         $url_params['options']['query'] = array();
       }
@@ -293,6 +294,89 @@ function pathologic_pathologic_alter(&$url_params, $parts, $settings) {
     }
     elseif ($parts['qparts']['test'] === 'use_original') {
       $url_params['options']['use_original'] = TRUE;
+    }
+  }
+}
+
+
+/**
+ * Tests with entity translation and language path prefixes.
+ */
+if (class_exists('EntityTranslationTestCase')) {
+  class PathologicEntityTranslationTestCase extends EntityTranslationTestCase {
+    public static function getInfo() {
+      return array(
+        'name' => 'Pathologic & Entity Translation',
+        'description' => 'Tests with entity translation and language prefixes.',
+        'group' => 'Filter',
+      );
+    }
+
+    public function setUp() {
+      parent::setUp('pathologic_test');
+
+      $this->login($this->getAdminUser(array('administer filters')));
+      $this->enableCleanUrls();
+      $this->addLanguage('en');
+      $this->addLanguage('es');
+      $this->enableUrlLanguageDetection();
+      $this->configureContentType();
+      $this->enablePathologicForTextFormat('filtered_html', array(
+        'filters[pathologic][settings][local_settings][protocol_style]' => 'path',
+      ));
+      $this->login($this->getTranslatorUser());
+    }
+
+    public function addLanguage($langcode) {
+      parent::addLanguage($langcode);
+      // Check to make sure that language has a prefix.
+      $this->backdropGet('admin/config/regional/language/edit/' . $langcode);
+      if ($this->xpath('//input[@type="text" and @name="prefix" and @value=""]')) {
+        $this->backdropPost(NULL, array('prefix' => $langcode), t('Save language'));
+      }
+    }
+
+    public function enablePathologicForTextFormat($format, $edit) {
+      $this->backdropGet('admin/config/content/formats/' . $format);
+      $edit['filters[pathologic][status]'] = 1;
+      $edit['filters[pathologic][weight]'] = 50;
+      $edit['filters[pathologic][settings][settings_source]'] = 'local';
+      $this->backdropPost(NULL, $edit, t('Save configuration'));
+    }
+
+    public function testEntityTranslation() {
+      // Create Basic page in English.
+      $node_title = $this->randomName();
+      $node_body = 'EN: ' . $this->randomName();
+      $node_one = $this->createPage($node_title, $node_body, 'en');
+
+      // Submit translation in Spanish.
+      $node_translation_title = $this->randomName();
+      $node_translation_body = 'ES: ' . $this->randomName();
+      $node_translation_one = $this->createTranslation($node_one, $node_translation_title, $node_translation_body, 'es', 'en');
+
+      $this->backdropGet('en/node/' . $node_one->nid);
+      $this->backdropGet('es/node/' . $node_one->nid);
+
+      // Create Basic page in English.
+      $node_title = $this->randomName();
+      $node_body = 'EN: ' . $this->randomName() . '<a href="node/' . $node_one->nid . '">FixMe</a>';
+      $node_two = $this->createPage($node_title, $node_body, 'en');
+
+      // Submit translation in Spanish.
+      $node_translation_title = $this->randomName();
+      $node_translation_body = 'ES: ' . $this->randomName() . '<a href="node/' . $node_one->nid . '">FixMe</a>';
+      $node_translation_two = $this->createTranslation($node_two, $node_translation_title, $node_translation_body, 'es', 'en');
+
+      // Check that the english translation points to the english version of node
+      // one.
+      $this->backdropGet('en/node/' . $node_two->nid);
+      $this->assertLinkByHref('en/node/' . $node_one->nid);
+      // Check that the spanish translation points to the spanish version of node
+      // one.
+      $this->backdropGet('es/node/' . $node_two->nid);
+      $this->assertLinkByHref('es/node/' . $node_one->nid);
+
     }
   }
 }
