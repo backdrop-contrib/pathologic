@@ -1,0 +1,9 @@
+type = module
+name = Pathologic testing
+description = Tests Pathologic module functionality. Do not enable.
+backdrop = 1.x
+package = Testing
+hidden = TRUE
+
+dependencies[] = entity_translation
+dependencies[] = pathologic

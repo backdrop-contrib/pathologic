@@ -55,7 +55,7 @@ function pathologic_filter_info() {
       // for each row in the filter table (the menu is hidden by JavaScript to
       // use table row dragging instead when JS is enabled).
       'weight' => 50,
-    )
+    ),
   );
 }
 
@@ -85,7 +85,7 @@ function _pathologic_settings($form, &$form_state, $filter, $format) {
   );
   $our_form['local_settings'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Custom settings for this input format'),
+    '#title' => t('Custom settings for this text format'),
     '#weight' => 20,
     '#collapsible' => FALSE,
     '#collapsed' => FALSE,
@@ -97,9 +97,10 @@ function _pathologic_settings($form, &$form_state, $filter, $format) {
     ),
   );
   module_load_include('inc', 'pathologic', 'pathologic.admin');
+  $settings = isset($filter->settings['local_settings']) ? $filter->settings['local_settings'] : $filter->settings;
   $our_form['local_settings'] += _pathologic_configuration_form(array(
-    'protocol_style' => isset($filter->settings['protocol_style']) ? $filter->settings['protocol_style'] : $defaults['protocol_style'],
-    'local_paths' => isset($filter->settings['local_paths']) ? $filter->settings['local_paths'] : $defaults['local_paths'],
+    'protocol_style' => isset($settings['protocol_style']) ? $settings['protocol_style'] : $defaults['protocol_style'],
+    'local_paths' => isset($settings['local_paths']) ? $settings['local_paths'] : $defaults['local_paths'],
   ));
   return $our_form;
 }
@@ -142,67 +143,58 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
   // different settings, we build an array of settings, keyed by format ID.
   $cached_settings = &backdrop_static(__FUNCTION__, array());
   if (!isset($cached_settings[$format->format])) {
-    // Overwrite local settings with the global defaults if necessary
+    $filter_settings = isset($filter->settings['local_settings']) ? $filter->settings['local_settings'] : $filter->settings;
+    // Overwrite local settings with the global defaults if necessary.
     if (_pathologic_get_real_settings_source($format->format) === 'global') {
-      $filter->settings['protocol_style'] = $config->get('protocol_style');
-      $filter->settings['local_paths'] = $config->get('local_paths');
+      $filter_settings['protocol_style'] = $config->get('protocol_style');
+      $filter_settings['local_paths'] = $config->get('local_paths');
     }
-    $filter->settings['local_paths_exploded'] = array();
-    if ($filter->settings['local_paths'] !== '') {
+    $filter_settings['local_paths_exploded'] = array();
+    if ($filter_settings['local_paths'] !== '') {
       // Build an array of the exploded local paths for this format's settings.
       // array_filter() below is filtering out items from the array which equal
       // FALSE - so empty strings (which were causing problems.
       // @see http://drupal.org/node/1727492
-      $local_paths = array_filter(array_map('trim', explode("\n", $filter->settings['local_paths'])));
+      $local_paths = array_filter(array_map('trim', explode("\n", $filter_settings['local_paths'])));
       foreach ($local_paths as $local) {
         $parts = @parse_url($local);
         // Okay, what the hellish "if" statement is doing below is checking to
         // make sure we aren't about to add a path to our array of exploded
         // local paths which matches the current "local" path. We consider it
-        // not a match, if…
+        // not a match, if….
         // @todo: This is pretty horrible. Can this be simplified?
         if (
-          (
-            // If this URI has a host, and…
+          (// If this URI has a host, and….
             isset($parts['host']) &&
-            (
-              // Either the host is different from the current host…
+            (// Either the host is different from the current host….
               $parts['host'] !== $base_url_parts['host']
-              // Or, if the hosts are the same, but the paths are different…
+              // Or, if the hosts are the same, but the paths are different….
               // @see http://drupal.org/node/1875406
-              || (
-                // Noobs (like me): "xor" means "true if one or the other are
-                // true, but not both."
+              || (// Noobs (like me): "xor" means "true if one or the other are
+                // true, but not both.".
                 (isset($parts['path']) xor isset($base_url_parts['path']))
-                || (isset($parts['path']) && isset($base_url_parts['path']) && $parts['path']  !== $base_url_parts['path'])
-              )
-            )
-          ) ||
-          // Or…
-          (
-            // The URI doesn't have a host…
-            !isset($parts['host'])
-          ) &&
+                || (isset($parts['path']) && isset($base_url_parts['path']) && $parts['path'] !== $base_url_parts['path'])))) ||
+          // Or….
+          (// The URI doesn't have a host….
+            !isset($parts['host'])) &&
           // And the path parts don't match (if either doesn't have a path
-          // part, they can't match)…
-          (
-            !isset($parts['path']) ||
+          // part, they can't match)….
+          (!isset($parts['path']) ||
             !isset($base_url_parts['path']) ||
-            $parts['path'] !== $base_url_parts['path']
-          )
+            $parts['path'] !== $base_url_parts['path'])
         ) {
           // Add it to the list.
-          $filter->settings['local_paths_exploded'][] = $parts;
+          $filter_settings['local_paths_exploded'][] = $parts;
         }
       }
     }
     // Now add local paths based on "this" server URL.
-    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-    $filter->settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+    $filter_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
+    $filter_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
     // We'll also just store the host part separately for easy access.
-    $filter->settings['base_url_host'] = $base_url_parts['host'];
+    $filter_settings['base_url_host'] = $base_url_parts['host'];
 
-    $cached_settings[$format->format] = $filter->settings;
+    $cached_settings[$format->format] = $filter_settings;
   }
   // Get the language code for the text we're about to process.
   $cached_settings['langcode'] = $langcode;
@@ -229,7 +221,7 @@ function _pathologic_replace($matches) {
   // three ways to do this that I can determine: use eval() and friends; abuse
   // globals; or abuse backdrop_static(). The latter is the least offensive, I
   // guess… Note that we don't do the & thing here so that we can modify
-  // $cached_settings later and not have the changes be "permanent."
+  // $cached_settings later and not have the changes be "permanent.".
   $cached_settings = backdrop_static('_pathologic_filter');
   // If it appears the path is a scheme-less URL, prepend a scheme to it.
   // parse_url() cannot properly parse scheme-less URLs. Don't worry; if it
@@ -247,7 +239,7 @@ function _pathologic_replace($matches) {
   }
   // Now parse the URL after reverting HTML character encoding.
   // @see http://drupal.org/node/1672932
-  $original_url = htmlspecialchars_decode($matches[2]);
+  $original_url = htmlspecialchars_decode($matches[2], ENT_COMPAT);
   // …and parse the URL
   $parts = @parse_url($original_url);
   // Do some more early tests to see if we should just give up now.
@@ -255,8 +247,7 @@ function _pathologic_replace($matches) {
     // If parse_url() failed, $parts = FALSE. If the href was just "#", $parts
     // is an empty array. Give up in both cases.
     empty($parts)
-    || (
-      // If there's a scheme part and it doesn't look useful, bail out.
+    || (// If there's a scheme part and it doesn't look useful, bail out.
       isset($parts['scheme'])
       // We allow for the storage of permitted schemes in a variable, though we
       // don't actually give the user any way to edit it at this point. This
@@ -264,8 +255,7 @@ function _pathologic_replace($matches) {
       // they don't want Pathologic to trip over a URL with an unusual scheme.
       // @see http://drupal.org/node/1834308
       // "files" and "internal" are for Path Filter compatibility.
-      && !in_array($parts['scheme'], config_get('pathologic.settings', 'scheme_whitelist'))
-    )
+      && !in_array($parts['scheme'], config_get('pathologic.settings', 'scheme_whitelist')))
     // Bail out if it looks like there's only a fragment part.
     || (isset($parts['fragment']) && count($parts) === 1)
   ) {
@@ -307,15 +297,13 @@ function _pathologic_replace($matches) {
   // or just a host if that's all we have; or just a starting path if that's
   // what we have.
   foreach ($cached_settings['current_settings']['local_paths_exploded'] as $exploded) {
-    // If a path is available in both…
+    // If a path is available in both….
     if (isset($exploded['path']) && isset($parts['path'])
-      // And the paths match…
+      // And the paths match….
       && strpos($parts['path'], $exploded['path']) === 0
-      // And either they have the same host, or both have no host…
-      && (
-        (isset($exploded['host']) && isset($parts['host']) && $exploded['host'] === $parts['host'])
-        || (!isset($exploded['host']) && !isset($parts['host']))
-      )
+      // And either they have the same host, or both have no host….
+      && ((isset($exploded['host']) && isset($parts['host']) && $exploded['host'] === $parts['host'])
+        || (!isset($exploded['host']) && !isset($parts['host'])))
     ) {
       // Remove the shared path from the path. This is because the "Also local"
       // path was something like http://foo/bar and this URL is something like
@@ -324,16 +312,16 @@ function _pathologic_replace($matches) {
       // part.
       $parts['path'] = backdrop_substr($parts['path'], backdrop_strlen($exploded['path']));
       $found = TRUE;
-      // Break out of the foreach loop
+      // Break out of the foreach loop.
       break;
     }
     // Okay, we didn't match on path alone, or host and path together. Can we
     // match on just host? Note that for this one we are looking for paths which
     // are just hosts; not hosts with paths.
     elseif ((isset($parts['host']) && !isset($exploded['path']) && isset($exploded['host']) && $exploded['host'] === $parts['host'])) {
-      // No further editing; just continue
+      // No further editing; just continue.
       $found = TRUE;
-      // Break out of foreach loop
+      // Break out of foreach loop.
       break;
     }
     // Is this is a root-relative url (no host) that didn't match above?
@@ -342,20 +330,20 @@ function _pathologic_replace($matches) {
     // that might more fully match the beginning of our url's path
     // e.g.: if our url is /foo/bar we'll mark this as a match for
     // http://example.com but want to keep searching and would prefer a match
-    // to http://example.com/foo if that's configured as a local path
+    // to http://example.com/foo if that's configured as a local path.
     elseif (!isset($parts['host']) && (!isset($exploded['path']) || $exploded['path'] === $base_path)) {
       $found = TRUE;
     }
   }
 
-  // If the path is not within the drupal root return original url, unchanged
+  // If the path is not within the drupal root return original url, unchanged.
   if (!$found) {
     return $matches[0];
   }
 
   // Okay, format the URL.
   // If there's still a slash lingering at the start of the path, chop it off.
-  $parts['path'] = ltrim($parts['path'],'/');
+  $parts['path'] = ltrim($parts['path'], '/');
 
   // Examine the query part of the URL. Break it up and look through it; if it
   // has a value for "q", we want to use that as our trimmed path, and remove it
@@ -385,12 +373,13 @@ function _pathologic_replace($matches) {
   }
 
   // If we didn't previously identify this as a file, check to see if the file
-  // exists now that we have the correct path relative to BACKDROP_ROOT
+  // exists now that we have the correct path relative to BACKDROP_ROOT.
   if (!$cached_settings['is_file']) {
-    $cached_settings['is_file'] = !empty($parts['path']) && is_file(BACKDROP_ROOT . '/'. $parts['path']);
+    $cached_settings['is_file'] = !empty($parts['path']) && is_file(BACKDROP_ROOT . '/'. $parts['path']) || _pathologic_is_file_directory($parts['path']);
   }
 
   // Okay, deal with language stuff.
+  $language_list = language_list();
   if ($cached_settings['is_file']) {
     // If we're linking to a file, use a fake LANGUAGE_NONE language object.
     // Otherwise, the path may get prefixed with the "current" language prefix
@@ -404,11 +393,14 @@ function _pathologic_replace($matches) {
       // this point, and sometimes not. We require_once it ourselves to be sure.
       require_once BACKDROP_ROOT . '/core/includes/locale.inc';
       require_once BACKDROP_ROOT . '/core/includes/language.inc';
-      list($language_obj, $path) = language_url_split_prefix($parts['path'], language_list());
+      list($language_obj, $path) = language_url_split_prefix($parts['path'], $language_list);
       if ($language_obj) {
         $parts['path'] = $path;
         $parts['language_obj'] = $language_obj;
       }
+    }
+    if (empty($parts['language_obj']) && !empty($cached_settings['langcode']) && !empty($language_list[$cached_settings['langcode']])) {
+      $parts['language_obj'] = $language_list[$cached_settings['langcode']];
     }
   }
 
@@ -422,7 +414,7 @@ function _pathologic_replace($matches) {
   $url_params = array(
     'path' => $parts['path'],
     'options' => array(
-      'query' => $parts['qparts'],
+      'query' => isset($parts['qparts']) && is_array($parts['qparts']) ? $parts['qparts'] : array(),
       'fragment' => isset($parts['fragment']) ? $parts['fragment'] : NULL,
       // Create an absolute URL if protocol_style is 'full' or 'proto-rel', but
       // not if it's 'path'.
@@ -437,7 +429,7 @@ function _pathologic_replace($matches) {
     ),
   );
 
-  // Add the original URL to the parts array
+  // Add the original URL to the parts array.
   $parts['original'] = $original_url;
 
   // Now alter!
@@ -464,7 +456,7 @@ function _pathologic_replace($matches) {
     }
   }
 
-  // Now for the url() call. Drumroll, please…
+  // Now for the url() call. Drumroll, please….
   $url = url($url_params['path'], $url_params['options']);
 
   // If we turned clean URLs on before to create a path to a file, turn them
@@ -533,3 +525,31 @@ function _pathologic_get_real_settings_source($format_name) {
   }
 }
 
+/**
+ * Checks whether the path belongs to one of the stream wrapper directories.
+ *
+ * @param string $path
+ *   The path to check.
+ *
+ * @return bool
+ *   TRUE if the path is in the public or private directory. FALSE otherwise.
+ */
+function _pathologic_is_file_directory($path) {
+  // Public stream wrapper: look up the path to which the stream wrapper points
+  // to and compare with the start of the given path.
+  /** @var DrupalLocalStreamWrapper $stream */
+  if ($stream = file_stream_wrapper_get_instance_by_scheme('public')) {
+    $dir = $stream->getDirectoryPath();
+    if (strpos($path, $dir) === 0) {
+      return TRUE;
+    }
+  }
+
+  // @todo Check other stream wrappers too?
+  // Private: use the url, not the real path.
+  if (strpos($path, 'system/files') === 0) {
+    return TRUE;
+  }
+
+  return FALSE;
+}

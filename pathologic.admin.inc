@@ -12,16 +12,16 @@ function pathologic_configuration_form($form, $form_state) {
   $config = config('pathologic.settings');
   $form['reminder'] = array(
     '#type' => 'markup',
-    '#markup' => '<p>' . t('Reminder: The settings on this form only affect text formats for which Pathologic is configured to use the global Pathologic settings; if it&rsquo;s configured to use per-format settings, these settings will have no effect. Please <a href="!docs">consult Pathologic&rsquo;s documentation</a> for a step-by-step guide to configuring Pathologic.', array('!docs' => 'http://drupal.org/node/257026')) . '</p>',
+    '#markup' => '<p>' . t('Reminder: The settings on this form only affect text formats for which Pathologic is configured to use the global Pathologic settings; if it&rsquo;s configured to use per-format settings, these settings will have no effect. Please <a href="!docs">consult Pathologic&rsquo;s documentation</a> for a step-by-step guide to configuring Pathologic.', array('!docs' => 'https://github.com/backdrop-contrib/pathologic/wiki')) . '</p>',
     '#weight' => 0,
   );
   $config_form = _pathologic_configuration_form(array(
     'protocol_style' => $config->get('protocol_style'),
     'local_paths' => $config->get('local_paths'),
   ));
-  $form['pathologic_protocol_style'] = $config_form['protocol_style'];
-  $form['pathologic_local_paths'] = $config_form['local_paths'];
-  
+  $form['protocol_style'] = $config_form['protocol_style'];
+  $form['local_paths'] = $config_form['local_paths'];
+
   $form['actions']['#type'] = 'actions';
   $form['actions']['submit'] = array(
     '#type'   => 'submit',
@@ -36,10 +36,9 @@ function pathologic_configuration_form($form, $form_state) {
  */
 function pathologic_configuration_form_submit($form, &$form_state) {
   $config = config('pathologic.settings');
-  $values = $form_state['values'];
 
-  $config->set('protocol_style', $form_state['values']['pathologic_protocol_style']);
-  $config->set('local_paths', $form_state['values']['pathologic_local_paths']);
+  $config->set('protocol_style', $form_state['values']['protocol_style']);
+  $config->set('local_paths', $form_state['values']['local_paths']);
   $config->save();
 
   backdrop_set_message(t('The configuration options have been saved.'));
@@ -74,7 +73,7 @@ function _pathologic_configuration_form($defaults) {
       '#type' => 'textarea',
       '#title' =>  t('All base paths for this site'),
       '#default_value' => $defaults['local_paths'],
-        '#description' => t('If this site is or was available at more than one base path or URL, enter them here, separated by line breaks. For example, if this site is live at <code>http://example.com/</code> but has a staging version at <code>http://dev.example.org/staging/</code>, you would enter both those URLs here. If confused, please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this option and what it affects.', array('!docs' => 'http://drupal.org/node/257026')),
+        '#description' => t('If this site is or was available at more than one base path or URL, enter them here, separated by line breaks. For example, if this site is live at <code>http://example.com/</code> but has a staging version at <code>http://dev.example.org/staging/</code>, you would enter both those URLs here. If confused, please read <a href="!docs">Pathologic&rsquo;s documentation</a> for more information about this option and what it affects.', array('!docs' => 'https://www.drupal.org/node/257026')),
       '#weight' => 20,
     ),
   );
