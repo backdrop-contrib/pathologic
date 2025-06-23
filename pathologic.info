@@ -3,6 +3,7 @@ name = Pathologic
 description = Helps avoid broken links and incorrect paths in content.
 package = "Input filters"
 backdrop = 1.x
+php = 7.1
 
 configure = admin/config/content/pathologic
 

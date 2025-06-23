@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Pathologic text filter for Backdrop.
@@ -13,9 +12,9 @@
 * Implements hook_config_info().
 */
 function pathologic_config_info() {
-  $prefixes['migrate.settings'] = array(
-    'label' => t('Main settings'),
-    'group' => t('Pathologic'),
+  $prefixes['pathologic.settings'] = array(
+    'label' => t('Pathologic settings'),
+    'group' => t('Configuration'),
   );
   return $prefixes;
 }
@@ -63,6 +62,7 @@ function pathologic_filter_info() {
  * Settings callback for Pathologic.
  */
 function _pathologic_settings($form, &$form_state, $filter, $format) {
+  $config = config('pathologic.settings');
   // Puzzlingly, though we have a $form parameter, it has everything else's form
   // elements in it; we can't just modify it in place or return it modified. We
   // need to start a new form.
@@ -97,10 +97,10 @@ function _pathologic_settings($form, &$form_state, $filter, $format) {
     ),
   );
   module_load_include('inc', 'pathologic', 'pathologic.admin');
-  $settings = isset($filter->settings['local_settings']) ? $filter->settings['local_settings'] : $filter->settings;
+  $settings = $filter->settings['local_settings'] ?? $filter->settings;
   $our_form['local_settings'] += _pathologic_configuration_form(array(
-    'protocol_style' => isset($settings['protocol_style']) ? $settings['protocol_style'] : $defaults['protocol_style'],
-    'local_paths' => isset($settings['local_paths']) ? $settings['local_paths'] : $defaults['local_paths'],
+    'protocol_style' => $settings['protocol_style'] ?? $config->get('protocol_style'),
+    'local_paths' => $settings['local_paths'] ?? $config->get('local_paths'),
   ));
   return $our_form;
 }
@@ -189,8 +189,13 @@ function _pathologic_filter($text, $filter, $format, $langcode, $cache, $cache_i
       }
     }
     // Now add local paths based on "this" server URL.
-    $filter_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path']);
-    $filter_settings['local_paths_exploded'][] = array('path' => $base_url_parts['path'], 'host' => $base_url_parts['host']);
+    $filter_settings['local_paths_exploded'][] = array(
+      'path' => $base_url_parts['path'],
+    );
+    $filter_settings['local_paths_exploded'][] = array(
+      'path' => $base_url_parts['path'],
+      'host' => $base_url_parts['host'],
+    );
     // We'll also just store the host part separately for easy access.
     $filter_settings['base_url_host'] = $base_url_parts['host'];
 
@@ -384,7 +389,10 @@ function _pathologic_replace($matches) {
     // If we're linking to a file, use a fake LANGUAGE_NONE language object.
     // Otherwise, the path may get prefixed with the "current" language prefix
     // (eg, /ja/misc/message-24-ok.png)
-    $parts['language_obj'] = (object) array('langcode' => LANGUAGE_NONE, 'prefix' => '');
+    $parts['language_obj'] = (object) array(
+      'langcode' => LANGUAGE_NONE,
+      'prefix' => '',
+    );
   }
   else {
     // Let's see if we can split off a language prefix from the path.
@@ -489,9 +497,9 @@ function _pathologic_replace($matches) {
 /**
  * Convert a full URL with a protocol to a protocol-relative URL.
  *
- * As the Backdrop core url() function doesn't support protocol-relative URLs, we
- * work around it by just creating a full URL and then running it through this
- * to strip off the protocol.
+ * As the Backdrop core url() function doesn't support protocol-relative URLs,
+ * we work around it by just creating a full URL and then running it through
+ * this to strip off the protocol.
  *
  * Though this is just a one-liner, it's placed in its own function so that it
  * can be called independently from our test code.
@@ -509,16 +517,16 @@ function _pathologic_url_to_protocol_relative($url) {
  * get the settings as they are in {filter} without pre-processing. AFAICT,
  * there's no API function to do this.
  *
- * @param $format_name
+ * @param string $format_name
  *   The machine name of the format.
- * @return
+ * @return string
  *   Either "global" or "local" as appropriate.
  */
-function _pathologic_get_real_settings_source($format_name) {
+function _pathologic_get_real_settings_source(string $format_name) {
   $filter_config = config('filter.format.' . $format_name);
   $config = $filter_config->get('filters.pathologic');
   if ($config) {
-    return isset($config['settings']['settings_source']) ? $config['settings']['settings_source'] : 'local';
+    return $config['settings']['settings_source'] ?? 'local';
   }
   else {
     return 'global';
